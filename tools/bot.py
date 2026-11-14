@@ -1,6 +1,6 @@
 """Let the test bot (tools/bot.js) play the whole climb and print how each zone went.
 
-Usage: python3 tools/bot.py [runs] [first floor] [average|weak] [last floor]      (default 3 full climbs, average skill)
+Usage: python3 tools/bot.py [runs] [first floor] [average|weak] [last floor] [easy|normal|hard]      (default 3 full climbs, average skill)
 Columns: deaths per climb; hp% = average health left at the end of a floor; time = game seconds per floor;
 fist% = share of fighting done with fists (ammo ran out); hit = damage taken per floor; t/o = floors the bot could not
 finish in 8 minutes (a sign of a soft-lock); assist = times it needed double health to get through.
@@ -13,6 +13,7 @@ runs = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 first = int(sys.argv[2]) if len(sys.argv) > 2 else 1      # optional: start every climb at this floor
 skill = sys.argv[3] if len(sys.argv) > 3 else 'average'  # or 'weak': slow aim, no dodging, poor gun choice
 last = int(sys.argv[4]) if len(sys.argv) > 4 else 100     # stop after this floor
+diff = sys.argv[5] if len(sys.argv) > 5 else 'normal'     # easy | normal | hard
 deaths_at = {}
 tot, logs = [None] * 10, []
 with sync_playwright() as p:
@@ -22,7 +23,7 @@ with sync_playwright() as p:
         errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.goto('file://' + ROOT + '/index.html#nopad'); pg.click('#go'); pg.wait_for_timeout(300)
         ev = lambda s: pg.evaluate('s => window.__cc.eval(s)', s)
-        ev(open(os.path.join(ROOT, 'tools', 'bot.js')).read()); ev(f"__bot.start({first}, '{skill}')")
+        ev(open(os.path.join(ROOT, 'tools', 'bot.js')).read()); ev(f"__bot.start({first}, '{skill}', '{diff}')")
         for _ in range(4000):
             st = ev('__bot.run(3000)')
             if st['done'] or errs or st['level'] > last: break

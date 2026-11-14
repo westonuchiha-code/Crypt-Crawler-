@@ -26,7 +26,7 @@
   #hpfill{height:100%;width:100%;background:#c93030;transition:width .15s}
   #msg{position:fixed;top:44px;left:0;right:0;text-align:center;text-shadow:0 1px 3px #000;pointer-events:none;transition:opacity .6s;font-size:16px;color:#f0d890;opacity:0}
   /* ---- arcade-style menus ---- */
-  #overlay{overflow-y:auto;position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px;box-sizing:border-box;
+  #overlay{overflow-y:auto;position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:12px;text-align:center;padding:16px;box-sizing:border-box;
     background:radial-gradient(ellipse at 50% 40%,rgba(60,0,0,.55),rgba(0,0,0,.92) 70%);font-family:ui-monospace,'Courier New',monospace;text-transform:uppercase}
   #overlay::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px)}   /* CRT scanlines */
   #overlay h1{margin:0;font:900 clamp(34px,8.5vw,84px)/0.9 Impact,'Arial Black','Roboto Condensed',sans-serif;letter-spacing:2px;
@@ -49,6 +49,17 @@
   #opts{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;color:#c8c0b0;font-size:11px;letter-spacing:2px}
   #opts label{display:flex;align-items:center;gap:8px}
   #opts input{width:120px;accent-color:#ff7a12;cursor:pointer}
+  #overlay>*{flex-shrink:0}
+  #links{display:flex;gap:22px;flex-wrap:wrap;justify-content:center}
+  @media (max-height:460px){#opts{gap:6px 14px;font-size:9px}#opts input{width:64px}#overlay{justify-content:flex-start;padding-top:8px}}
+  #optdiff{background:#200;border:1px solid #a33;color:#ffd23a;font:700 11px ui-monospace,monospace;letter-spacing:2px;text-transform:uppercase;padding:4px 10px;cursor:pointer;min-width:74px}
+  #records{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer}
+  #recpanel{display:none;position:absolute;inset:0;z-index:2;overflow-y:auto;background:#0b0606;padding:18px 16px 40px;box-sizing:border-box;text-align:center}
+  #recpanel.on{display:block}
+  #recpanel h2{margin:0 0 10px;font:900 clamp(22px,5vw,40px)/1 Impact,'Arial Black',sans-serif;letter-spacing:3px;color:#ffb23a}
+  #recpanel table{margin:8px auto;border-collapse:collapse;font-size:12px;color:#d8d0c0}
+  #recpanel td{padding:3px 14px;text-align:left}#recpanel td:last-child{text-align:right;color:#ffe14a}
+  #recclose{position:sticky;top:0;float:right;background:#200;border:1px solid #a33;color:#fff;font:700 13px ui-monospace,monospace;letter-spacing:2px;padding:6px 10px;cursor:pointer}
   #quit{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer}
   #creditsbtn{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer}
   #credits{display:none;position:absolute;inset:0;z-index:2;overflow-y:auto;background:#0b0606;padding:18px 16px 40px;box-sizing:border-box;text-transform:none;text-align:center}
@@ -84,10 +95,11 @@
   <div id="opts">
     <label>volume <input id="optvol" type="range" min="0" max="100" step="5"></label>
     <label>music <input id="optmus" type="range" min="0" max="100" step="5"></label>
+    <label>difficulty <button id="optdiff" type="button">normal</button></label>
     <label>mouse speed <input id="optsens" type="range" min="30" max="250" step="10"></label>
   </div>
-  <button id="quit" style="display:none">quit to title</button>
-  <button id="creditsbtn">credits</button>
+  <div id="links"><button id="quit" style="display:none">quit to title</button><button id="records">records</button><button id="creditsbtn">credits</button></div>
+  <div id="recpanel"><button id="recclose">CLOSE ✕</button><h2>RECORDS</h2><table id="rectable"></table></div>
   <div id="credits">
     <button id="creditsclose">CLOSE ✕</button>
     <h2>Credits</h2>
@@ -223,20 +235,24 @@ const zoneStart = lv => zoneOf(lv) * 10 + 1;
 const BOSS_NAMES = {}, BOSS_HP = {};
 ZONES.forEach((z, i) => { BOSS_NAMES[(i + 1) * 10] = z.boss; BOSS_HP[(i + 1) * 10] = 600 + 300 * i; });   // 600 ... 3300
 // difficulty grows per zone (not per floor, which would explode by floor 100), plus a little within each zone
-const hpMul = lv => 1 + 0.12 * zoneOf(lv) + 0.01 * ((lv - 1) % 10);
+// Difficulty (settings, `opts.diff`): scales enemy damage and health and how much ammo a floor holds. It takes effect
+// from the next floor generated. Normal is the tuning the test bot was balanced on.
+const DIFFS = { easy: { dmg: 0.7, hp: 0.85, ammo: 1.2 }, normal: { dmg: 1, hp: 1, ammo: 1 }, hard: { dmg: 1.3, hp: 1.15, ammo: 0.9 } };
+const DF = () => DIFFS[opts.diff] || DIFFS.normal;
+const hpMul = lv => (1 + 0.12 * zoneOf(lv) + 0.01 * ((lv - 1) % 10)) * DF().hp;
 // ---- balance: what the climb gives back (tools/balance.py prints the whole table, zone by zone) ----
 // The player toughens a little each zone, potions keep pace, and each floor's ammo is sized to the enemies on it:
 // about AMMO_RATIO times their total health in ammo damage, generous in the crypt and tighter near the top.
 const zoneMaxHp = lv => 100 + 10 * zoneOf(lv);                      // 100 in the crypt ... 190 in the other world
 const potionHeal = lv => 35 + 4 * zoneOf(lv);
 const potionCount = lv => 2 + (zoneOf(lv) >= 3) + (zoneOf(lv) >= 7);
-const AMMO_RATIO = lv => 1.9 - 0.04 * zoneOf(lv);                   // 1.9 ... 1.55
+const AMMO_RATIO = lv => (1.9 - 0.04 * zoneOf(lv)) * DF().ammo;                 // 1.9 ... 1.55
 const AMMO_DMG = { ewand: 12, dshot: 40, phoenix: 40, claw: 25, hstaff: 13, mace: 8, plasma: 12, rocket: 110, bfg: 500 };   // rough damage one unit of ammo deals in real play
 const wpnMul = lv => 1 + 0.1 * zoneOf(lv);                          // your weapons hit 10% harder for every zone climbed
 const ARMOUR_MAX = 100, ARMOUR_PICKUP = 50, ARMOUR_SOAK = 0.5;      // armour takes half of each hit until it is gone
 const FURY_TIME = 20, WARD_TIME = 8;                                // double damage / cannot be hurt, in seconds
 let floorAmmo = 1;                                                  // this floor's ammo multiplier, set in generate()
-const dmgMul = lv => 1 + 0.10 * zoneOf(lv);
+const dmgMul = lv => (1 + 0.10 * zoneOf(lv)) * DF().dmg;
 // Damage is [min, max] per hit, before the zone bonus (wpnMul). knock = shove back (cells), stun = seconds the enemy
 // cannot move or attack; bosses take 20% knock and 30% stun. One job each:
 //  fist      always there: weak, but shoves and staggers so you can make space
@@ -695,8 +711,8 @@ function spawnMonster(x, y, kind, lv) {
   const m = { x, y, kind, dead: false, hurt: 0, mcool: 0, rcool: rnd(1, 2.5), wander: 0, wa: 0, ph: rnd(0, 6.28),
     boss: false, name: '', ranged: false, scale: 1, speed: 1, dmg: 5, hp: 55, maxHp: 55, tex: SPR.ghoul,
     shot: 'fire', burst: 1, keep: 0, weave: 0, lungeCd: rnd(2, 4), lungeT: 0, animT: 0 };
-  if (kind === 'boss') Object.assign(m, { boss: true, name: BOSS_NAMES[lv], hp: BOSS_HP[lv], tex: SPR.boss, scale: 2.4, speed: 0.75,
-    dmg: Math.round(8 + 1.6 * zoneOf(lv)), ranged: true, heavy: true, ringT: 3, sumT: 5, blinkT: 4 }, BOSS_MOVES[zoneOf(lv)]);
+  if (kind === 'boss') Object.assign(m, { boss: true, name: BOSS_NAMES[lv], hp: Math.round(BOSS_HP[lv] * DF().hp), tex: SPR.boss, scale: 2.4, speed: 0.75,
+    dmg: Math.round((8 + 1.6 * zoneOf(lv)) * DF().dmg), ranged: true, heavy: true, ringT: 3, sumT: 5, blinkT: 4 }, BOSS_MOVES[zoneOf(lv)]);
   else {
     Object.assign(m, KIND[kind] || KIND.ghoul, { tex: SPR[SPR_FALLBACK[kind] || kind] || SPR.ghoul });
     if (!m.prop) { m.hp = Math.round(m.hp * hpMul(lv)); m.dmg = Math.round(m.dmg * dmgMul(lv)); }     // zone scaling for regular enemies
@@ -984,7 +1000,7 @@ function los(x0, y0, x1, y1) {
 // the first key press or click, when browsers allow audio to start.
 const SND = {}, sndLast = {};
 // settings, kept per browser in localStorage 'cc_opts': master volume 0-1 and mouse turn speed (1 = default)
-const opts = Object.assign({ vol: 0.7, sens: 1, music: 0.4 }, (() => { try { return JSON.parse(localStorage.getItem('cc_opts')) || {}; } catch (e) { return {}; } })());
+const opts = Object.assign({ vol: 0.7, sens: 1, music: 0.4, diff: 'normal' }, (() => { try { return JSON.parse(localStorage.getItem('cc_opts')) || {}; } catch (e) { return {}; } })());
 let actx = null, sndMaster = null, sndVolume = opts.vol, actT = 4;
 function audioInit() {
   if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
@@ -1047,23 +1063,41 @@ function saveBest() {
 }
 function showMenu(title, text, go, dead) {
   running = false;
+  if (document.pointerLockElement) { lockDropT = performance.now(); document.exitPointerLock(); }   // give the mouse back so the menu can be clicked
   if (title === 'CRYPT CRAWLER') setMusic('title'); else if (title === 'SPIRE CONQUERED') setMusic('win');
   $('title').textContent = title; $('title').classList.toggle('dead', !!dead);
   $('tag').style.display = title === 'CRYPT CRAWLER' ? '' : 'none';
   introEl.textContent = text; $('go').textContent = go;
   const b = loadBest();
   $('hiscore').innerHTML = b.floor ? `TOP CLIMB &nbsp;<b>FLOOR ${b.floor}</b> &nbsp;·&nbsp; <b>${b.kills}</b> SLAIN` : 'TOP CLIMB &nbsp;<b>---</b>';
-  const cp = loadCheckpoint(), canCont = cp && cp.floor > 1 && title !== 'SPIRE CONQUERED';
+  const cp = (!dead && loadResume()) || loadCheckpoint(), canCont = cp && cp.floor > 1 && title !== 'SPIRE CONQUERED';
   if (canCont && !dead && title === 'CRYPT CRAWLER') $('go').textContent = `PRESS START · FLOOR ${cp.floor}`;
   $('newclimb').style.display = canCont ? '' : 'none'; $('quit').style.display = 'none'; paused = false; summary = false;
   overlay.style.display = 'flex'; menuShownAt = performance.now();
 }
-let menuShownAt = performance.now(), paused = false, summary = false;
+let menuShownAt = performance.now(), paused = false, summary = false, lockDropT = -1e9;   // lockDropT: when the game itself last let go of the mouse
 // ---- zone results: shown when you take the stairs after a boss; PRESS START carries on to the next zone ----
 let zoneStat = { t: 0, kills0: 0, hurt: 0, secrets: 0, secretsAll: 0 }, runT = 0;
+// lifetime records, localStorage 'cc_stats': counters plus the best time for each zone and for a whole climb
+function loadStats() { try { return Object.assign({ deaths: 0, kills: 0, secrets: 0, wins: 0, zoneBest: [], runBest: 0 }, JSON.parse(localStorage.getItem('cc_stats')) || {}); } catch (e) { return { deaths: 0, kills: 0, secrets: 0, wins: 0, zoneBest: [], runBest: 0 }; } }
+function bumpStats(add, zone, zoneTime, runTime) {
+  const s = loadStats();
+  for (const k in add) s[k] = (s[k] || 0) + add[k];
+  if (zone !== undefined && (!s.zoneBest[zone] || zoneTime < s.zoneBest[zone])) s.zoneBest[zone] = Math.round(zoneTime);
+  if (runTime && (!s.runBest || runTime < s.runBest)) s.runBest = Math.round(runTime);
+  try { localStorage.setItem('cc_stats', JSON.stringify(s)); } catch (e) {}
+}
+function showRecords(on) {
+  const s = loadStats(), b = loadBest(), row = (a, v) => `<tr><td>${a}</td><td>${v}</td></tr>`;
+  $('rectable').innerHTML = row('Highest floor', b.floor || '-') + row('Climbs completed', s.wins) + row('Fastest climb', s.runBest ? clock(s.runBest) : '-')
+    + row('Enemies slain', s.kills) + row('Secrets found', s.secrets) + row('Deaths', s.deaths)
+    + ZONES.map((z, i) => row(`Best time · ${z.name}`, s.zoneBest[i] ? clock(s.zoneBest[i]) : '-')).join('');
+  $('recpanel').classList.toggle('on', on); menuShownAt = performance.now();
+}
 const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 function showSummary() {
   const z = ZONES[zoneOf(level)];
+  bumpStats({ kills: kills - zoneStat.kills0, secrets: zoneStat.secrets }, zoneOf(level), zoneStat.t);
   showMenu(`${z.name.replace(/^THE /, '')} CLEARED`,
     `${z.boss} is dead · time ${clock(zoneStat.t)} · ${kills - zoneStat.kills0} slain · secrets ${zoneStat.secrets} of ${zoneStat.secretsAll} · damage taken ${Math.round(zoneStat.hurt)}`,
     `PRESS START · ${ZONES[zoneOf(level + 1)].name}`);
@@ -1085,13 +1119,13 @@ function resumeGame() {
   try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
 }
 function die() {
-  sfx('death');
+  sfx('death'); clearResume(); bumpStats({ deaths: 1 });
   const rec = saveBest(), cp = loadCheckpoint();
   showMenu('GAME OVER', `${rec ? 'NEW RECORD! ' : ''}Fell on floor ${level} · ${kills} slain`,
     cp ? `CONTINUE FROM FLOOR ${cp.floor}? PRESS START` : 'CONTINUE? PRESS START', true);
 }
 function victory() {
-  saveBest(); clearCheckpoint();
+  saveBest(); clearCheckpoint(); bumpStats({ wins: 1, kills: kills - zoneStat.kills0, secrets: zoneStat.secrets + secrets.found }, zoneOf(level), zoneStat.t, runT);
   if (typeof THREE !== 'undefined') { try { startEnding(); return; } catch (e) { endActive = false; } }   // no Three.js / WebGL: straight to the menu
   victoryMenu();
 }
@@ -1107,11 +1141,18 @@ function hurtPlayer(n) {
   if (P.hp <= 0) { P.hp = 0; die(); }
 }
 // ---- checkpoints: entering a zone saves floor + loadout (localStorage 'cc_save'); CONTINUE restarts there ----
+// A second save, 'cc_resume', is written on every floor so closing the game loses nothing; it restores the floor exactly
+// (health, armour, timers). Dying deletes it, which is what sends you back to the zone checkpoint.
+function saveResume() {
+  try { localStorage.setItem('cc_resume', JSON.stringify({ floor: level, kills, owned: P.owned, ammo: P.ammo, weapon: P.weapon, armor: P.armor, hp: P.hp, runT, zoneStat })); } catch (e) {}
+}
+function loadResume() { try { return JSON.parse(localStorage.getItem('cc_resume')); } catch (e) { return null; } }
+function clearResume() { try { localStorage.removeItem('cc_resume'); } catch (e) {} }
 function saveCheckpoint() {
   try { localStorage.setItem('cc_save', JSON.stringify({ floor: level, kills, owned: P.owned, ammo: P.ammo, weapon: P.weapon, armor: P.armor })); } catch (e) {}
 }
 function loadCheckpoint() { try { return JSON.parse(localStorage.getItem('cc_save')); } catch (e) { return null; } }
-function clearCheckpoint() { try { localStorage.removeItem('cc_save'); } catch (e) {} }
+function clearCheckpoint() { try { localStorage.removeItem('cc_save'); } catch (e) {} clearResume(); }
 function nextLevel(afterSummary) {
   zoneStat.secrets += secrets.found; zoneStat.secretsAll += secrets.total; secrets = { total: 0, found: 0 };
   if (level > 0 && level % 10 === 0 && level < FINAL && !afterSummary) { showSummary(); return; }
@@ -1129,8 +1170,9 @@ function nextLevel(afterSummary) {
     saveCheckpoint();                                          // a second checkpoint at the boss's door, so losing to it does not cost the zone
     showMsg(`Floor ${level} · ${z.boss} awaits · checkpoint`);
   } else showMsg(`Floor ${level}`);
+  saveResume();
 }
-function continueGame(cp) {
+function continueGame(cp, exact) {                           // exact: a resume save, restored as it was (no refill)
   kills = cp.kills || 0; zoneStat = { t: 0, kills0: kills, hurt: 0, secrets: 0, secretsAll: 0 };
   P = newPlayer(); Object.assign(P.owned, cp.owned); Object.assign(P.ammo, cp.ammo);
   for (const w in P.owned) if (!WEAPONS[w]) delete P.owned[w];          // a save from before the weapon change
@@ -1138,9 +1180,11 @@ function continueGame(cp) {
   level = cp.floor; P.maxHp = P.hp = zoneMaxHp(level); generate(level); setMusic(MUSIC_FOR(level));
   // a retry never starts empty-handed: every gun unlocked by now is in your hands with at least a cache and a half of ammo,
   // so running dry before a checkpoint cannot turn into dying there over and over
-  for (const w in WEAPON_FLOOR) if (level >= WEAPON_FLOOR[w]) { P.owned[w] = true; P.ammo[w] = Math.max(P.ammo[w], Math.round(CRATE_AMMO[w] * floorAmmo * 1.5)); }
+  if (exact) { P.hp = Math.min(P.maxHp, cp.hp || P.maxHp); runT = cp.runT || 0; if (cp.zoneStat) zoneStat = cp.zoneStat; }
+  else for (const w in WEAPON_FLOOR) if (level >= WEAPON_FLOOR[w]) { P.owned[w] = true; P.ammo[w] = Math.max(P.ammo[w], Math.round(CRATE_AMMO[w] * floorAmmo * 1.5)); }
   if (P.weapon === 'fist') P.weapon = WEAPON_ORDER.find(w => P.owned[w]) || 'fist';
   running = true; overlay.style.display = 'none';
+  try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
   showMsg(`${ZONES[zoneOf(level)].name} · floor ${level}`);
 }
 function giveWeapon(w) {
@@ -1284,7 +1328,7 @@ function spawnShot(m, off = 0, dmgMulBy = 1, abs = null) {
   const a = abs === null ? Math.atan2(P.y - m.y, P.x - m.x) + off : abs;
   const sp = m.boss ? 4.2 : 3.2;
   shots.push({ x: m.x, y: m.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 4, kind: m.shot, t: 0,
-    dmg: Math.max(1, Math.round((m.boss ? 6 + 1.4 * zoneOf(level) : m.dmg) * dmgMulBy)) });   // bosses: 8 melee / 6 a shot in the crypt, 22 / 19 at the top   // a regular enemy's shot hits as hard as its claws
+    dmg: Math.max(1, Math.round((m.boss ? (6 + 1.4 * zoneOf(level)) * DF().dmg : m.dmg) * dmgMulBy)) });   // bosses: 8 melee / 6 a shot in the crypt, 22 / 19 at the top   // a regular enemy's shot hits as hard as its claws
 }
 // A volley at the player: `burst` shots fanned out.
 function volley(m) {
@@ -2557,6 +2601,7 @@ const WEAPON_KEYS = { Digit0: 'fist' }; WEAPON_ORDER.slice(0, 9).forEach((w, i) 
 addEventListener('keydown', e => {
   if (introActive) { if (['Space', 'Enter', 'Escape'].includes(e.code) && canSkipIntro()) endIntro(); return; }
   if (endActive) { if (['Space', 'Enter', 'Escape'].includes(e.code) && !e.repeat && canSkipEnding()) finishEnding(); return; }
+  if ($('recpanel').classList.contains('on')) { if (['Escape', 'Enter', 'Space'].includes(e.code) && !e.repeat) { e.preventDefault(); showRecords(false); } return; }
   if ($('credits').classList.contains('on')) {               // credits page: its own keys, arrows scroll it
     if (['Escape', 'Enter', 'Space'].includes(e.code) && !e.repeat) { e.preventDefault(); showCredits(false); }
     return;
@@ -2587,8 +2632,13 @@ showMenu('CRYPT CRAWLER', 'Erupt from the crypt, climb the Spire floor by floor,
 $('go').addEventListener('click', () => {
   audioInit(); sfx('switch');
   if (paused) { resumeGame(); return; }
-  if (summary) { summary = false; running = true; overlay.style.display = 'none'; nextLevel(true); return; }
-  const cp = loadCheckpoint();
+  if (summary) {
+    summary = false; running = true; overlay.style.display = 'none'; nextLevel(true);
+    try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+    return;
+  }
+  const rs = loadResume(), cp = loadCheckpoint();
+  if (rs && rs.floor > 1) { continueGame(rs, true); return; }   // pick up exactly where you left off
   if (cp && cp.floor > 1) { continueGame(cp); return; }      // a saved zone checkpoint beats starting over
   if (!introSeen) { introSeen = true; startIntro(); }
   else resetGame();
@@ -2599,6 +2649,12 @@ const saveOpts = () => { try { localStorage.setItem('cc_opts', JSON.stringify(op
 $('optvol').addEventListener('input', e => { opts.vol = sndVolume = e.target.value / 100; if (sndMaster) sndMaster.gain.value = sndVolume; saveOpts(); });
 $('optvol').addEventListener('change', () => { audioInit(); sfx('ewand'); });       // a test shot at the new volume
 $('optsens').addEventListener('input', e => { opts.sens = e.target.value / 100; saveOpts(); });
+$('optdiff').textContent = opts.diff;
+$('optdiff').addEventListener('click', e => {
+  e.stopPropagation();
+  opts.diff = { easy: 'normal', normal: 'hard', hard: 'easy' }[opts.diff] || 'normal'; e.target.textContent = opts.diff; saveOpts();
+  if (running || paused) showMsg(`Difficulty ${opts.diff}: from the next floor`);
+});
 $('optmus').value = Math.round(opts.music * 100);
 $('optmus').addEventListener('input', e => { opts.music = e.target.value / 100; setMusic(musicKey || 'title'); saveOpts(); });
 for (const id of ['optvol', 'optsens', 'optmus']) $(id).addEventListener('click', e => e.stopPropagation());
@@ -2607,10 +2663,12 @@ $('quit').addEventListener('click', e => {
   showMenu('CRYPT CRAWLER', 'Erupt from the crypt, climb the Spire floor by floor, and slay the guardian on every tenth floor.', 'PRESS START');
 });
 // the browser takes Esc itself to release the mouse, so losing the lock is how a pause usually arrives
-document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && running) pauseGame(); });
+document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && running && performance.now() - lockDropT > 600) pauseGame(); });   // not when a menu released it
 document.addEventListener('visibilitychange', () => { if (document.hidden && running) pauseGame(); });
 function showCredits(on) { $('credits').classList.toggle('on', on); if (on) $('credits').scrollTop = 0; menuShownAt = performance.now(); }
 $('creditsbtn').addEventListener('click', e => { e.stopPropagation(); showCredits(true); });
+$('records').addEventListener('click', e => { e.stopPropagation(); showRecords(true); });
+$('recclose').addEventListener('click', e => { e.stopPropagation(); showRecords(false); });
 $('creditsclose').addEventListener('click', e => { e.stopPropagation(); showCredits(false); });
 $('newclimb').addEventListener('click', e => {               // wipe the checkpoint and start from the crypt
   e.stopPropagation(); clearCheckpoint(); $('newclimb').style.display = 'none';

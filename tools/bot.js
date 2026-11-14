@@ -100,11 +100,12 @@ window.__bot = (function () {
     else if (S.floorT > 480) { z.timeouts++;
       const fl = monsters.filter(m => !m.dead && !m.prop), fs = new Set(fl.map(cellOf)), pl = plan();
       S.log.push(`timeout floor ${level}: foes ${fl.length} boss ${bossAlive()} keys ${P.keys} locked ${map.indexOf(LOCKED) >= 0} | plan ${pl.length} foePath ${(bfs(c => fs.has(c), true) || []).length} stairsPath ${(bfs(c => map[c] === STAIRS) || []).length} blockedHere ${blocked(P.x, P.y)} tile ${map[cellOf(P)]} visibleFoes ${fl.filter(m => los(P.x, P.y, m.x, m.y)).length} nearest ${fl.length ? Math.min(...fl.map(m => Math.hypot(m.x - P.x, m.y - P.y))).toFixed(1) : '-'} foeTiles ${[...new Set(fl.map(m => map[cellOf(m)]))]} at ${P.x.toFixed(2)},${P.y.toFixed(2)} a ${P.a.toFixed(2)} v ${(P.vx||0).toFixed(2)},${(P.vy||0).toFixed(2)} goal ${pl.length ? (pl[0] % W) + ',' + ((pl[0] / W) | 0) : '-'} itemsAt ${items.filter(i => !i.taken && Math.hypot(i.x - P.x, i.y - P.y) < 3).map(i => i.kind + '@' + i.x.toFixed(2) + ',' + i.y.toFixed(2)).join(' ')} propsNear ${props.filter(p => Math.hypot(p.x - P.x, p.y - P.y) < 2).map(p => p.kind + (p.solid ? 'S' : '') + '@' + p.x + ',' + p.y).join(' ')} weapon ${P.weapon} items ${items.filter(i => !i.taken).map(i => i.kind + (bfs(c => c === cellOf(i)) ? '' : '!')).join(',')}`); const lv = level; if (level >= FINAL) { S.done = true; return; } monsters.forEach(m => { m.dead = true; }); nextLevel(); floorDone(lv); }
+    if (!running && paused) { resumeGame(); return; }        // the page paused itself (lost focus or mouse lock): carry on
     if (!running && summary) { const lv = level; $('go').click(); floorDone(lv); return; }     // zone results screen: press start
     if (!running) {                                          // died, or won
       if (level >= FINAL && !bossAlive() && P.hp > 0) { S.done = true; return; }
       z.deaths++; S.zoneDeaths++; S.deathFloors[level] = (S.deathFloors[level] || 0) + 1;
-      const cp = loadCheckpoint();
+      const cp = loadCheckpoint();                         // (dying already deleted the resume save)
       if (cp && cp.floor > 1) continueGame(cp); else { resetGame(); nextLevel(); }
       if (S.zoneDeaths >= 8) { assist = true; z.assists++; }  // hopelessly stuck: carry on with double health so later zones still get measured
       if (assist) { P.maxHp *= 2; P.hp = P.maxHp; }
@@ -117,7 +118,8 @@ window.__bot = (function () {
   }
   return {
     // start(floor): begin at that floor with every gun unlocked by then and two caches' worth of ammo each (a stand-in for a checkpoint)
-    start(floor = 1, skill = 'average') {
+    start(floor = 1, skill = 'average', diff = 'normal') {
+      opts.diff = diff; try { localStorage.removeItem('cc_resume'); } catch (e) {}
       if (skill === 'weak') SK = { turn: 2.5, err: 0.14, strafe: false, retreat: true, smart: false };
       try { localStorage.removeItem('cc_save'); } catch (e) {}
       resetGame();

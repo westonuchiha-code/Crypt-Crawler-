@@ -268,3 +268,20 @@ floor; Star-Eater and Spire Titan moves eased.
   (`rcool` 2.1 s in zone 1 to 1.5 s in zone 10), boss charges are rarer, and the bosses of floors 70, 80 and 90 were eased.
 - Bot now: average player, full climb: deaths only on floors 90 and 100 (about 2 per climb). Weak player, zones 1-4:
   about 2 deaths on floor 30, under 1 on floor 40, none elsewhere.
+
+## Difficulty, resume saves, records, and a mouse-lock bug (2026-11-14, late)
+- Difficulty: `opts.diff` (easy / normal / hard, button `#optdiff` on the title and pause menus). `DIFFS` scales enemy
+  damage (0.7 / 1 / 1.3), enemy health (0.85 / 1 / 1.15) and the ammo ratio (1.2 / 1 / 0.9) through `dmgMul`, `hpMul`,
+  boss stats and `AMMO_RATIO`; it applies from the next floor generated. Bot: weak player on easy dies only at the
+  floor 30 boss in zones 1-4; average player on hard finishes the climb but loses ~7 lives to the floor 90 boss.
+- Resume save `cc_resume`: written on every floor (`saveResume` in `nextLevel`), restored exactly by
+  `continueGame(rs, true)`; PRESS START on the title prefers it over the zone checkpoint. Dying deletes it.
+- Records: lifetime stats in `cc_stats` (`bumpStats`, `showRecords`, panel `#recpanel`): climbs, fastest climb, kills,
+  secrets, deaths, best time per zone.
+- **Bug fixed (PC):** menus opened by the game (game over, zone cleared, victory) left the mouse locked to the canvas,
+  so their buttons could not be clicked. `showMenu` now exits pointer lock (`lockDropT` stops that from counting as a
+  pause) and the game re-locks when play resumes.
+- Menu layout: `#overlay` uses `justify-content: safe center` and a compact layout under 460 px high; quit, records and
+  credits share one row (`#links`).
+- Bot usage: `python3 tools/bot.py [runs] [first] [average|weak] [last] [easy|normal|hard]`. If the page pauses itself the
+  bot resumes; before that fix every zone start showed one false death.
