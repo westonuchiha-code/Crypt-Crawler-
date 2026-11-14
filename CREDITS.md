@@ -35,6 +35,9 @@ The wall, floor and door textures come from a pack bought on itch.io. Credit is 
   from reselling or reskin-reselling, no attribution required, fine for commercial projects. Nothing confirms the Sewer
   Kit has the same terms, though it is likely.
 - This was found by web search; the pack's page itself could not be opened from the build machine.
-- **To settle it:** check the downloaded zip for a licence or readme file, or ask Comp-3 Interactive (a comment on the
-  pack's page, or their itch.io profile). The game credits them by name in the meantime.
+- The developer's purchase is confirmed (itch.io shows "You own this asset pack", bought for 5.99 GBP).
+- The downloaded zip was checked on 2026-11-15: 107 files (textures, meshes, a Unity package, Blender and Photoshop
+  sources) and **no licence, readme or terms file** anywhere in it, including inside the Unity package.
+- **To settle it:** ask Comp-3 Interactive in a comment on the pack's page whether it may be used, modified, in a
+  commercial game, and whether credit is wanted. The game credits them by name in the meantime.
 - Still unidentified: the pack that "Dungeon_Map.png" and "Doors_Map.png" came from (most walls, floors and doors).
