@@ -13,7 +13,7 @@ function saveBest() {
   return isNew;
 }
 function showMenu(title, text, go, dead) {
-  running = false;
+  running = false; $('bossbar').style.display = 'none';
   if (document.pointerLockElement) { lockDropT = performance.now(); document.exitPointerLock(); }   // give the mouse back so the menu can be clicked
   if (title !== 'PAUSED' && !/CLEARED$/.test(title)) setAmbience(0);
   if (title === 'CRYPT CRAWLER') setMusic('title'); else if (title === 'SPIRE CONQUERED') setMusic('win');
@@ -79,7 +79,7 @@ function showSummary() {
 // ---- pause: Esc or P in play (or losing the mouse lock, or switching away from the tab) ----
 function pauseGame() {
   if (!running) return;
-  running = false; paused = true;
+  running = false; paused = true; $('bossbar').style.display = 'none';
   $('title').textContent = 'PAUSED'; $('title').classList.remove('dead'); $('tag').style.display = 'none';
   introEl.textContent = level > 0 ? `Floor ${level} · ${ZONES[zoneOf(level)].name}` : 'The entrance';
   $('go').textContent = 'RESUME'; $('newclimb').style.display = 'none'; $('quit').style.display = '';

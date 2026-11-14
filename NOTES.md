@@ -336,3 +336,13 @@ floor; Star-Eater and Spire Titan moves eased.
   wind in the open zones) and stray noises every 10-25 s; `setAmbience`, `ambienceTick`. Sounds are Blasphemer's.
 - `python3 tools/cutscenes.py [sheet.png]`: plays the intro and ending through with WebGL and checks the hand-over and
   the skip rules (10 checks). Run it after touching 14-intro.js, 15-ending.js or the menu flow.
+
+## Firemace bursts, boss bar, one-command smoke test (2026-11-15)
+- Firemace spheres now burst in a small blast (0.9 cells, 5-8 damage) wherever they hit; measured 45 damage per second
+  in use (was 39). `AMMO_DMG` nudged to the latest measurements (claw 33, hellstaff 13, mace 10).
+- Boss health bar `#bossbar` (name + bar, top centre under the message line), shown while a boss that has seen you
+  (`m.woke`) is alive; the boss's numbers were removed from the top text line.
+- tools/live.py is now the one-command check: after firing every weapon it runs 22 checks (traps, darts, lock and key,
+  secret, pod, armour, ward, fury, difficulty, resume save, death and checkpoint retry, mouse release, pause, field of
+  view, boss bar, achievement, zone results, victory menu, release build). It ends `errors: none` only if all pass.
+  Note for writing more checks: the page's own frame loop keeps running between evals, so read "before" values first.

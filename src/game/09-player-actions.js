@@ -174,7 +174,7 @@ function spawnPlayerShot(w) {
 function explode(s) {
   s.dead = true;
   if (s.blast > 0) {
-    sfxAt(s.boom, s.x, s.y);
+    sfxAt(s.boom, s.x, s.y, s.blast < 1.2 ? 0.5 : 1);
     pshots.push({ kind: 'boom', x: s.x, y: s.y, vx: 0, vy: 0, life: 0.25, static: true, dead: false, size: s.blast });
     for (const m of monsters) {
       if (!m.dead && Math.hypot(m.x - s.x, m.y - s.y) < s.blast) hurtMonster(m, roll(s.blastDmg), s.knock, 0.2, s.x, s.y);

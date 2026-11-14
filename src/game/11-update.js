@@ -110,6 +110,9 @@ function update(dt) {
   const b = monsters.find(m => m.boss && !m.dead);
   const floorTxt = level === 0 ? 'ENTRANCE' : `FLOOR ${level} · ${ZONES[zoneOf(level)].name.replace('THE ', '')}`;
   const extra = (P.keys > 0 ? ' · KEY' : '') + (P.armor > 0 ? ` · ARMOUR ${P.armor}` : '') + (P.fury > 0 ? ` · FURY ${Math.ceil(P.fury)}s` : '') + (P.ward > 0 ? ` · WARD ${Math.ceil(P.ward)}s` : '');
-  stats.textContent = `HP ${Math.ceil(P.hp)}/${P.maxHp}${extra} · ${floorTxt} · ${wdef.name} ${ammoTxt} · SLAIN ${kills}${b ? ` · ${b.name} ${b.hp}/${b.maxHp}` : ''}`;
+  stats.textContent = `HP ${Math.ceil(P.hp)}/${P.maxHp}${extra} · ${floorTxt} · ${wdef.name} ${ammoTxt} · SLAIN ${kills}`;
+  const bar = $('bossbar'), showBar = b && b.woke && running;
+  bar.style.display = showBar ? 'flex' : 'none';
+  if (showBar) { $('bossname').textContent = b.name; $('bossfill').style.width = Math.max(0, b.hp / b.maxHp * 100) + '%'; }
 }
 

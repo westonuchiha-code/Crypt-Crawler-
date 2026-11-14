@@ -182,6 +182,7 @@ function resize() {
   const hud = document.getElementById('hud');
   hud.style.left = (s.x + 12) + 'px';
   hud.style.right = (innerWidth - s.x - s.width + 12) + 'px';
+  Object.assign($('bossbar').style, { left: s.x + 'px', right: (innerWidth - s.x - s.width) + 'px', top: (s.y + 66) + 'px' });
   const ov = document.getElementById('overlay');   // title screen sits in the same free area
   ov.style.left = s.x + 'px'; ov.style.right = (innerWidth - s.x - s.width) + 'px';
   ov.style.top = s.y + 'px'; ov.style.bottom = (innerHeight - s.y - s.height) + 'px';
