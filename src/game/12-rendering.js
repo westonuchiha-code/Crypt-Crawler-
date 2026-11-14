@@ -195,3 +195,54 @@ function drawHitFlash() {
   }
   bctx.lineWidth = 1;
 }
+
+// ---- lightning bolts and beams (drawn over the 3D view) ----
+// project a world point to screen-x (returns null if behind the camera)
+function projectX(x, y) {
+  const dirX = Math.cos(P.a), dirY = Math.sin(P.a);
+  const planeX = -dirY * FOV_PLANE, planeY = dirX * FOV_PLANE;
+  const inv = 1 / (planeX * dirY - dirX * planeY);
+  const sx = x - P.x, sy = y - P.y;
+  const tx = inv * (dirY * sx - dirX * sy);
+  const ty = inv * (-planeY * sx + planeX * sy);
+  return ty > 0.2 ? RW / 2 * (1 + tx / ty) : null;
+}
+// draw one jagged bolt between two screen points: blue glow, white core, impact flash
+function drawJaggedBolt(x1, y1, x2, y2, col) {
+  const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len, ny = dx / len;                 // perpendicular: jitter across the bolt, not along it
+  const amp = Math.min(9, len * 0.1);
+  const pts = [[x1, y1]];
+  for (let i = 1; i < 10; i++) {
+    const t = i / 10, off = rnd(-1, 1) * amp;
+    pts.push([x1 + dx * t + nx * off, y1 + dy * t + ny * off]);
+  }
+  pts.push([x2, y2]);
+  const stroke = (col, lw) => {
+    bctx.strokeStyle = col; bctx.lineWidth = lw;
+    bctx.beginPath(); bctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) bctx.lineTo(pts[i][0], pts[i][1]);
+    bctx.stroke();
+  };
+  stroke(col ? col + '88' : 'rgba(80,160,255,0.45)', 3);
+  stroke('#f4fbff', 1);
+  bctx.fillStyle = 'rgba(190,225,255,0.7)';
+  bctx.beginPath(); bctx.arc(x2, y2, 2.5, 0, Math.PI * 2); bctx.fill();
+}
+function drawBolts() {
+  for (const b of bolts) {
+    const y2 = RH / 2;
+    const x2 = projectX(b.bx, b.by);
+    if (x2 === null) continue;
+    let x1, y1;
+    if (b.hand) { [x1, y1] = palmPoint(); }   // from the casting hand's fingertips
+    else {
+      x1 = projectX(b.ax, b.ay);
+      if (x1 === null) continue;
+      y1 = y2;
+    }
+    drawJaggedBolt(x1, y1, x2, y2, b.col);
+  }
+  bctx.lineWidth = 1;
+}
+

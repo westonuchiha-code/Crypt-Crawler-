@@ -71,8 +71,8 @@ function spawnMonster(x, y, kind, lv) {
   const m = { x, y, kind, dead: false, hurt: 0, mcool: 0, rcool: rnd(1, 2.5), wander: 0, wa: 0, ph: rnd(0, 6.28),
     boss: false, name: '', ranged: false, scale: 1, speed: 1, dmg: 5, hp: 55, maxHp: 55, tex: SPR.ghoul,
     shot: 'fire', burst: 1, keep: 0, weave: 0, lungeCd: rnd(2, 4), lungeT: 0, animT: 0 };
-  if (kind === 'boss') Object.assign(m, { boss: true, name: BOSS_NAMES[lv], hp: Math.round(BOSS_HP[lv] * DF().hp), tex: SPR.boss, scale: 2.4, speed: 0.75,
-    dmg: Math.round((8 + 1.6 * zoneOf(lv)) * DF().dmg), ranged: true, heavy: true, ringT: 3, sumT: 5, blinkT: 4 }, BOSS_MOVES[zoneOf(lv)]);
+  if (kind === 'boss') Object.assign(m, { boss: true, name: BOSS_NAMES[lv], hp: Math.round(BOSS_HP[lv] * (opts.diff === 'hard' ? 1 : DF().hp)), tex: SPR.boss, scale: 2.4, speed: 0.75,
+    dmg: Math.round((8 + 1.6 * zoneOf(lv)) * bossDmgK()), ranged: true, heavy: true, ringT: 3, sumT: 5, blinkT: 4 }, BOSS_MOVES[zoneOf(lv)]);
   else {
     Object.assign(m, KIND[kind] || KIND.ghoul, { tex: SPR[SPR_FALLBACK[kind] || kind] || SPR.ghoul });
     if (!m.prop) { m.hp = Math.round(m.hp * hpMul(lv)); m.dmg = Math.round(m.dmg * dmgMul(lv)); }     // zone scaling for regular enemies

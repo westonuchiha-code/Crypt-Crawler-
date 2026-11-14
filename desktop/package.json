@@ -1,0 +1,23 @@
+{
+  "name": "crypt-crawler",
+  "productName": "Crypt Crawler",
+  "version": "0.1.0",
+  "description": "A retro first-person dungeon crawler: climb the Spire, floor by floor.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.cryptcrawler.game",
+    "files": ["main.js", "game/**/*"],
+    "win": { "target": "nsis" },
+    "linux": { "target": "AppImage", "category": "Game" },
+    "mac": { "target": "dmg", "category": "public.app-category.action-games" }
+  }
+}

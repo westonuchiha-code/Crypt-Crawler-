@@ -25,6 +25,7 @@ ZONES.forEach((z, i) => { BOSS_NAMES[(i + 1) * 10] = z.boss; BOSS_HP[(i + 1) * 1
 // from the next floor generated. Normal is the tuning the test bot was balanced on.
 const DIFFS = { easy: { dmg: 0.7, hp: 0.85, ammo: 1.2 }, normal: { dmg: 1, hp: 1, ammo: 1 }, hard: { dmg: 1.3, hp: 1.15, ammo: 0.9 } };
 const DF = () => DIFFS[opts.diff] || DIFFS.normal;
+const bossDmgK = () => opts.diff === 'hard' ? 1.18 : DF().dmg;   // on hard, bosses hit 18% harder (not 30%) and keep normal health: they were the wall
 const hpMul = lv => (1 + 0.12 * zoneOf(lv) + 0.01 * ((lv - 1) % 10)) * DF().hp;
 // ---- balance: what the climb gives back (tools/balance.py prints the whole table, zone by zone) ----
 // The player toughens a little each zone, potions keep pace, and each floor's ammo is sized to the enemies on it:

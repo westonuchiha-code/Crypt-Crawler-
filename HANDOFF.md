@@ -92,7 +92,7 @@ pause menu and settings. The user tests by playing; much of this is tuned by sim
 3. **More trap kinds** (only spikes and explosive pods exist).
 4. **Unused pad buttons:** ○, L1/R1, L2/R2 are unwired, but the pad is test scaffolding, so low priority.
 5. **Before release:**
-   - remove the on-screen pad (or set RQPad `onlyOnTouch: true`)
+   - the pad is already left out of `tools/build.py --release` (dist/)
    - **remind the user:** the wall/floor/door textures are from a pack they bought on itch.io; they will look up its
      name and licence later (steps in CREDITS.md, "Reminder"). Everything else is on the in-game credits page.
-   - wrap as a desktop app for Steam / itch.io
+   - desktop app: scaffold is in desktop/ (see its README); installers still have to be built and tried per platform

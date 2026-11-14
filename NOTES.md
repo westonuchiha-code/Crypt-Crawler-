@@ -304,3 +304,13 @@ floor; Star-Eater and Spire Titan moves eased.
   full screen (the Claude artifact frame may), in which case the call is silently ignored.
 - Field of view: `opts.fov` in degrees (55-100, default 67), slider `#optfov`; `setFov` sets `FOV_PLANE`.
 - The user does not want a tutorial ("everyone knows how to play a Doom-type game").
+
+## Tidy sections, release build, desktop wrapper (2026-11-15)
+- src/game/ was reorganised into 18 files that match their names (table in src/README.md). Only functions and their
+  leading comments moved; a line-by-line comparison showed no code line added or lost.
+- `python3 tools/build.py --release` writes dist/: the game without the on-screen pad or rqpad.js, plus assets, sounds,
+  music, three.min.js and LICENSES.txt (Freedoom, Blasphemer, three.js notices). The game no longer needs RQPad to run.
+- desktop/: Electron wrapper (main.js, package.json, README.md). Checked here with `CC_SMOKE=1` under xvfb: the page,
+  three.js, art and sounds all load and the pad is absent. No installer has been built or tried on Windows or macOS.
+- Hard difficulty: bosses now hit 18% harder (not 30%) and keep normal health. Bot, final zone on hard, three runs:
+  14 deaths at the final boss before, 1 after (the bot's results swing a lot between runs, so treat that loosely).
