@@ -47,6 +47,7 @@ function update(dt) {
   if (keys[K.fire] || padFire) fire();
 
   updateMonsters(dt);
+  ambienceTick(dt);
   actT -= dt;                                                 // now and then something nearby growls
   if (actT <= 0) {
     actT = rnd(2.5, 6);

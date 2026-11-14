@@ -36,6 +36,31 @@ function sfxAt(key, x, y, vol = 1) {
 }
 const msnd = (m, ev, vol = 1) => !!window.SOUND_KEYS && sfxAt((m.art || monArtKey(m)) + '_' + ev, m.x, m.y, vol * (m.boss ? 1.3 : 1));
 addEventListener('keydown', audioInit); addEventListener('pointerdown', audioInit);
+// ---- ambience: per zone, a quiet loop (or none) plus a stray noise every 10-25 s ----
+const ZONE_AMB = [
+  [null, ['amb1', 'amb2', 'amb3']], ['amb_water', ['amb6', 'amb7']], [null, ['amb1', 'amb8', 'amb3']], [null, ['amb2', 'amb6']],
+  ['amb_fire', ['amb7']], ['amb_wind', []], ['amb_wind', ['amb8']], [null, ['amb6', 'amb7', 'amb8']],
+  [null, ['amb1', 'amb7', 'amb8']], ['amb_wind', ['amb2', 'amb3']]
+];
+let ambSrc = null, ambKey = '', ambT = 8;
+function setAmbience(lv) {
+  const key = lv > 0 ? ZONE_AMB[zoneOf(lv)][0] : null;
+  if (key === ambKey && (ambSrc || !key)) return;
+  if (ambSrc) { try { ambSrc.stop(); } catch (e) {} ambSrc = null; }
+  ambKey = key;
+  const buf = key && actx && window.SOUND_KEYS && SND[SOUND_KEYS[key]];
+  if (!buf) return;                                           // not decoded yet: update() asks again
+  const g = actx.createGain(); g.gain.value = 0.22; g.connect(sndMaster);
+  ambSrc = actx.createBufferSource(); ambSrc.buffer = buf; ambSrc.loop = true; ambSrc.connect(g); ambSrc.start();
+}
+function ambienceTick(dt) {
+  if (level <= 0) return;
+  if (!ambSrc && ZONE_AMB[zoneOf(level)][0]) setAmbience(level);
+  if ((ambT -= dt) > 0) return;
+  ambT = rnd(10, 25);
+  const list = ZONE_AMB[zoneOf(level)][1];
+  if (list.length) sfx(list[(Math.random() * list.length) | 0], 0.35, rnd(-0.8, 0.8));
+}
 // ---- music: looping tracks in music/<key>.mp3 (tools/pack_music.py), streamed by an <audio> element so only the
 // track in use is downloaded. setMusic(key) switches; nothing plays until the first key press or click. ----
 const musicEl = new Audio(); musicEl.loop = true; musicEl.preload = 'none';

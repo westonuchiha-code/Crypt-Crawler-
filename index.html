@@ -262,7 +262,7 @@ const zoneMaxHp = lv => 100 + 10 * zoneOf(lv);                      // 100 in th
 const potionHeal = lv => 35 + 4 * zoneOf(lv);
 const potionCount = lv => 2 + (zoneOf(lv) >= 3) + (zoneOf(lv) >= 7);
 const AMMO_RATIO = lv => (1.9 - 0.04 * zoneOf(lv)) * DF().ammo;                 // 1.9 ... 1.55
-const AMMO_DMG = { ewand: 13, dshot: 38, phoenix: 30, claw: 20, hstaff: 10, mace: 9, plasma: 11, rocket: 78, bfg: 280 };   // damage one unit of ammo really deals, as measured by the test bot (misses and all); sizes each floor's ammo
+const AMMO_DMG = { ewand: 12, dshot: 37, phoenix: 33, claw: 27, hstaff: 12, mace: 9, plasma: 10, rocket: 80, bfg: 270 };   // damage one unit of ammo really deals, as measured by the test bot (misses and all); sizes each floor's ammo
 const wpnMul = lv => 1 + 0.1 * zoneOf(lv);                          // your weapons hit 10% harder for every zone climbed
 const ARMOUR_MAX = 100, ARMOUR_PICKUP = 50, ARMOUR_SOAK = 0.5;      // armour takes half of each hit until it is gone
 const FURY_TIME = 20, WARD_TIME = 8;                                // double damage / cannot be hurt, in seconds
@@ -286,8 +286,8 @@ const WEAPONS = {
   dshot:   { name: 'DOUBLE SHOTGUN',  type: 'hitscan',  cool: 0.95, dmg: [7, 11],  pellets: 7, spread: 0.12, near: 2.5, far: 8, knock: 0.45, stun: 0.12, ammo: true, animDur: 0.9 },
   phoenix: { name: 'PHOENIX ROD',     type: 'fireball', cool: 0.75, dmg: [30, 40], speed: 8, blast: 1.9, blastDmg: [16, 22], knock: 1.0, ammo: true, animDur: 0.6, spr: 'fire' },
   claw:    { name: 'DRAGON CLAW',     type: 'chain',    cool: 0.5,  dmg: [16, 22], range: 6, arc: 0.35, chain: 3.2, jumps: 3, falloff: 0.75, stun: 0.4, ammo: true, animDur: 0.6 },
-  hstaff:  { name: 'HELLSTAFF',       type: 'pierce',   cool: 0.2,  dmg: [10, 13], range: 12, stun: 0.05, ammo: true, animDur: 0.2 },
-  mace:    { name: 'FIREMACE',        type: 'fireball', cool: 0.16, dmg: [10, 14], speed: 7, spread: 0.1, bounce: 3, life: 2.4, ammo: true, animDur: 0.3, spr: 'spit' },
+  hstaff:  { name: 'HELLSTAFF',       type: 'pierce',   cool: 0.17, dmg: [11, 14], range: 12, stun: 0.05, ammo: true, animDur: 0.2 },
+  mace:    { name: 'FIREMACE',        type: 'fireball', cool: 0.16, dmg: [12, 16], speed: 7, spread: 0.1, bounce: 3, life: 2.4, ammo: true, animDur: 0.3, spr: 'spit' },
   plasma:  { name: 'PLASMA RIFLE',    type: 'fireball', cool: 0.12, dmg: [13, 17], speed: 14, ammo: true, animDur: 0.14, spr: 'bolt' },
   rocket:  { name: 'ROCKET LAUNCHER', type: 'fireball', cool: 0.9,  dmg: [65, 85], speed: 9, blast: 2.5, blastDmg: [40, 55], knock: 1.6, ammo: true, animDur: 0.6, spr: 'rocket', boom: 'bigboom' },
   bfg:     { name: 'THE BIG ONE',     type: 'nova',     cool: 1.6,  dmg: [150, 210], range: 9, knock: 1.5, ammo: true, animDur: 1.1 }
@@ -1066,6 +1066,31 @@ function sfxAt(key, x, y, vol = 1) {
 }
 const msnd = (m, ev, vol = 1) => !!window.SOUND_KEYS && sfxAt((m.art || monArtKey(m)) + '_' + ev, m.x, m.y, vol * (m.boss ? 1.3 : 1));
 addEventListener('keydown', audioInit); addEventListener('pointerdown', audioInit);
+// ---- ambience: per zone, a quiet loop (or none) plus a stray noise every 10-25 s ----
+const ZONE_AMB = [
+  [null, ['amb1', 'amb2', 'amb3']], ['amb_water', ['amb6', 'amb7']], [null, ['amb1', 'amb8', 'amb3']], [null, ['amb2', 'amb6']],
+  ['amb_fire', ['amb7']], ['amb_wind', []], ['amb_wind', ['amb8']], [null, ['amb6', 'amb7', 'amb8']],
+  [null, ['amb1', 'amb7', 'amb8']], ['amb_wind', ['amb2', 'amb3']]
+];
+let ambSrc = null, ambKey = '', ambT = 8;
+function setAmbience(lv) {
+  const key = lv > 0 ? ZONE_AMB[zoneOf(lv)][0] : null;
+  if (key === ambKey && (ambSrc || !key)) return;
+  if (ambSrc) { try { ambSrc.stop(); } catch (e) {} ambSrc = null; }
+  ambKey = key;
+  const buf = key && actx && window.SOUND_KEYS && SND[SOUND_KEYS[key]];
+  if (!buf) return;                                           // not decoded yet: update() asks again
+  const g = actx.createGain(); g.gain.value = 0.22; g.connect(sndMaster);
+  ambSrc = actx.createBufferSource(); ambSrc.buffer = buf; ambSrc.loop = true; ambSrc.connect(g); ambSrc.start();
+}
+function ambienceTick(dt) {
+  if (level <= 0) return;
+  if (!ambSrc && ZONE_AMB[zoneOf(level)][0]) setAmbience(level);
+  if ((ambT -= dt) > 0) return;
+  ambT = rnd(10, 25);
+  const list = ZONE_AMB[zoneOf(level)][1];
+  if (list.length) sfx(list[(Math.random() * list.length) | 0], 0.35, rnd(-0.8, 0.8));
+}
 // ---- music: looping tracks in music/<key>.mp3 (tools/pack_music.py), streamed by an <audio> element so only the
 // track in use is downloaded. setMusic(key) switches; nothing plays until the first key press or click. ----
 const musicEl = new Audio(); musicEl.loop = true; musicEl.preload = 'none';
@@ -1096,6 +1121,7 @@ function saveBest() {
 function showMenu(title, text, go, dead) {
   running = false;
   if (document.pointerLockElement) { lockDropT = performance.now(); document.exitPointerLock(); }   // give the mouse back so the menu can be clicked
+  if (title !== 'PAUSED' && !/CLEARED$/.test(title)) setAmbience(0);
   if (title === 'CRYPT CRAWLER') setMusic('title'); else if (title === 'SPIRE CONQUERED') setMusic('win');
   $('title').textContent = title; $('title').classList.toggle('dead', !!dead);
   $('tag').style.display = title === 'CRYPT CRAWLER' ? '' : 'none';
@@ -1203,7 +1229,7 @@ function nextLevel(afterSummary) {
   zoneStat.secrets += secrets.found; zoneStat.secretsAll += secrets.total; secrets = { total: 0, found: 0 };
   if (level > 0 && level % 10 === 0 && level < FINAL && !afterSummary) { showSummary(); return; }
   if (level % 10 === 0) { zoneStat = { t: 0, kills0: kills, hurt: 0, secrets: 0, secretsAll: 0 }; zoneDeaths = 0; }
-  level++; setMusic(MUSIC_FOR(level));
+  level++; setMusic(MUSIC_FOR(level)); setAmbience(level);
   sfx(level === 1 ? 'door' : 'stairs');
   P.maxHp = zoneMaxHp(level);
   P.hp = Math.min(P.maxHp, P.hp + Math.round(P.maxHp / 4));        // a breather on every staircase
@@ -1223,7 +1249,7 @@ function continueGame(cp, exact) {                           // exact: a resume 
   P = newPlayer(); Object.assign(P.owned, cp.owned); Object.assign(P.ammo, cp.ammo);
   for (const w in P.owned) if (!WEAPONS[w]) delete P.owned[w];          // a save from before the weapon change
   P.weapon = WEAPONS[cp.weapon] && P.owned[cp.weapon] ? cp.weapon : (WEAPON_ORDER.find(w => P.owned[w]) || 'fist'); P.armor = cp.armor || 0;
-  level = cp.floor; P.maxHp = P.hp = zoneMaxHp(level); generate(level); setMusic(MUSIC_FOR(level));
+  level = cp.floor; P.maxHp = P.hp = zoneMaxHp(level); generate(level); setMusic(MUSIC_FOR(level)); setAmbience(level);
   // a retry never starts empty-handed: every gun unlocked by now is in your hands with at least a cache and a half of ammo,
   // so running dry before a checkpoint cannot turn into dying there over and over
   if (exact) { P.hp = Math.min(P.maxHp, cp.hp || P.maxHp); runT = cp.runT || 0; if (cp.zoneStat) zoneStat = cp.zoneStat; }
@@ -1643,6 +1669,7 @@ function update(dt) {
   if (keys[K.fire] || padFire) fire();
 
   updateMonsters(dt);
+  ambienceTick(dt);
   actT -= dt;                                                 // now and then something nearby growls
   if (actT <= 0) {
     actT = rnd(2.5, 6);

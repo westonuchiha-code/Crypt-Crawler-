@@ -48,6 +48,7 @@ python3 tools/build.py           # src/ -> index.html (live.py also runs it)
 python3 -c "import re;s=open('index.html').read();open('/tmp/i.js','w').write(max(re.findall(r'<script>(.*?)</script>',s,re.S),key=len))" && node --check /tmp/i.js
 python3 tools/live.py            # must say: errors: none
 python3 tools/bot.py 1           # a full bot climb, after anything that touches balance, enemies or level generation
+python3 tools/cutscenes.py       # intro and ending end to end, after touching the cutscenes or the menu flow
 ```
 - **Test setup:** the tools use Playwright with /usr/bin/google-chrome and block three.min.js to skip the intro.
   pack_assets.py needs Pillow, numpy and scipy; pack_sounds.py needs ffmpeg.

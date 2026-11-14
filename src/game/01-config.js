@@ -34,7 +34,7 @@ const zoneMaxHp = lv => 100 + 10 * zoneOf(lv);                      // 100 in th
 const potionHeal = lv => 35 + 4 * zoneOf(lv);
 const potionCount = lv => 2 + (zoneOf(lv) >= 3) + (zoneOf(lv) >= 7);
 const AMMO_RATIO = lv => (1.9 - 0.04 * zoneOf(lv)) * DF().ammo;                 // 1.9 ... 1.55
-const AMMO_DMG = { ewand: 13, dshot: 38, phoenix: 30, claw: 20, hstaff: 10, mace: 9, plasma: 11, rocket: 78, bfg: 280 };   // damage one unit of ammo really deals, as measured by the test bot (misses and all); sizes each floor's ammo
+const AMMO_DMG = { ewand: 12, dshot: 37, phoenix: 33, claw: 27, hstaff: 12, mace: 9, plasma: 10, rocket: 80, bfg: 270 };   // damage one unit of ammo really deals, as measured by the test bot (misses and all); sizes each floor's ammo
 const wpnMul = lv => 1 + 0.1 * zoneOf(lv);                          // your weapons hit 10% harder for every zone climbed
 const ARMOUR_MAX = 100, ARMOUR_PICKUP = 50, ARMOUR_SOAK = 0.5;      // armour takes half of each hit until it is gone
 const FURY_TIME = 20, WARD_TIME = 8;                                // double damage / cannot be hurt, in seconds
@@ -58,8 +58,8 @@ const WEAPONS = {
   dshot:   { name: 'DOUBLE SHOTGUN',  type: 'hitscan',  cool: 0.95, dmg: [7, 11],  pellets: 7, spread: 0.12, near: 2.5, far: 8, knock: 0.45, stun: 0.12, ammo: true, animDur: 0.9 },
   phoenix: { name: 'PHOENIX ROD',     type: 'fireball', cool: 0.75, dmg: [30, 40], speed: 8, blast: 1.9, blastDmg: [16, 22], knock: 1.0, ammo: true, animDur: 0.6, spr: 'fire' },
   claw:    { name: 'DRAGON CLAW',     type: 'chain',    cool: 0.5,  dmg: [16, 22], range: 6, arc: 0.35, chain: 3.2, jumps: 3, falloff: 0.75, stun: 0.4, ammo: true, animDur: 0.6 },
-  hstaff:  { name: 'HELLSTAFF',       type: 'pierce',   cool: 0.2,  dmg: [10, 13], range: 12, stun: 0.05, ammo: true, animDur: 0.2 },
-  mace:    { name: 'FIREMACE',        type: 'fireball', cool: 0.16, dmg: [10, 14], speed: 7, spread: 0.1, bounce: 3, life: 2.4, ammo: true, animDur: 0.3, spr: 'spit' },
+  hstaff:  { name: 'HELLSTAFF',       type: 'pierce',   cool: 0.17, dmg: [11, 14], range: 12, stun: 0.05, ammo: true, animDur: 0.2 },
+  mace:    { name: 'FIREMACE',        type: 'fireball', cool: 0.16, dmg: [12, 16], speed: 7, spread: 0.1, bounce: 3, life: 2.4, ammo: true, animDur: 0.3, spr: 'spit' },
   plasma:  { name: 'PLASMA RIFLE',    type: 'fireball', cool: 0.12, dmg: [13, 17], speed: 14, ammo: true, animDur: 0.14, spr: 'bolt' },
   rocket:  { name: 'ROCKET LAUNCHER', type: 'fireball', cool: 0.9,  dmg: [65, 85], speed: 9, blast: 2.5, blastDmg: [40, 55], knock: 1.6, ammo: true, animDur: 0.6, spr: 'rocket', boom: 'bigboom' },
   bfg:     { name: 'THE BIG ONE',     type: 'nova',     cool: 1.6,  dmg: [150, 210], range: 9, knock: 1.5, ammo: true, animDur: 1.1 }

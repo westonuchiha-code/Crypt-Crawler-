@@ -14,6 +14,9 @@ GENERAL = {
     'eshot': 'f:dsfirsht', 'eboom': 'f:dsfirxpl',
     'hurt': 'f:dsplpain', 'death': 'f:dspldeth', 'noway': 'f:dsnoway',
     'item': 'f:dsitemup', 'weapon': 'f:dswpnup', 'power': 'f:dsgetpow',
+    # ambience: loops (amb_*) and one-off noises (amb1..), used per zone by ZONE_AMB in index.html
+    'amb_water': 'b:waterfl', 'amb_wind': 'b:wind', 'amb_fire': 'b:burn',
+    'amb1': 'b:amb1', 'amb2': 'b:amb2', 'amb3': 'b:amb3', 'amb6': 'b:amb6', 'amb7': 'b:amb7', 'amb8': 'b:amb8',
     'door': 'f:dsdoropn', 'stairs': 'f:dspstart', 'switch': 'f:dsswtchn',
 }
 #            see           atk           pain          die           act           shot

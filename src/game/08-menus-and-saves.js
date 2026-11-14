@@ -15,6 +15,7 @@ function saveBest() {
 function showMenu(title, text, go, dead) {
   running = false;
   if (document.pointerLockElement) { lockDropT = performance.now(); document.exitPointerLock(); }   // give the mouse back so the menu can be clicked
+  if (title !== 'PAUSED' && !/CLEARED$/.test(title)) setAmbience(0);
   if (title === 'CRYPT CRAWLER') setMusic('title'); else if (title === 'SPIRE CONQUERED') setMusic('win');
   $('title').textContent = title; $('title').classList.toggle('dead', !!dead);
   $('tag').style.display = title === 'CRYPT CRAWLER' ? '' : 'none';
@@ -122,7 +123,7 @@ function nextLevel(afterSummary) {
   zoneStat.secrets += secrets.found; zoneStat.secretsAll += secrets.total; secrets = { total: 0, found: 0 };
   if (level > 0 && level % 10 === 0 && level < FINAL && !afterSummary) { showSummary(); return; }
   if (level % 10 === 0) { zoneStat = { t: 0, kills0: kills, hurt: 0, secrets: 0, secretsAll: 0 }; zoneDeaths = 0; }
-  level++; setMusic(MUSIC_FOR(level));
+  level++; setMusic(MUSIC_FOR(level)); setAmbience(level);
   sfx(level === 1 ? 'door' : 'stairs');
   P.maxHp = zoneMaxHp(level);
   P.hp = Math.min(P.maxHp, P.hp + Math.round(P.maxHp / 4));        // a breather on every staircase
@@ -142,7 +143,7 @@ function continueGame(cp, exact) {                           // exact: a resume 
   P = newPlayer(); Object.assign(P.owned, cp.owned); Object.assign(P.ammo, cp.ammo);
   for (const w in P.owned) if (!WEAPONS[w]) delete P.owned[w];          // a save from before the weapon change
   P.weapon = WEAPONS[cp.weapon] && P.owned[cp.weapon] ? cp.weapon : (WEAPON_ORDER.find(w => P.owned[w]) || 'fist'); P.armor = cp.armor || 0;
-  level = cp.floor; P.maxHp = P.hp = zoneMaxHp(level); generate(level); setMusic(MUSIC_FOR(level));
+  level = cp.floor; P.maxHp = P.hp = zoneMaxHp(level); generate(level); setMusic(MUSIC_FOR(level)); setAmbience(level);
   // a retry never starts empty-handed: every gun unlocked by now is in your hands with at least a cache and a half of ammo,
   // so running dry before a checkpoint cannot turn into dying there over and over
   if (exact) { P.hp = Math.min(P.maxHp, cp.hp || P.maxHp); runT = cp.runT || 0; if (cp.zoneStat) zoneStat = cp.zoneStat; }

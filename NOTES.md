@@ -325,3 +325,14 @@ floor; Star-Eater and Spire Titan moves eased.
   another within 5 cells). Bot curve unchanged: deaths only at bosses.
 - Achievements: `ACH` table and `unlock(id)` in 08-menus-and-saves.js, stored in `cc_stats.ach`, listed at the bottom of
   the records panel, announced with a message. `zoneDeaths` backs "Untouchable" (it is not saved across a reload).
+
+## Smarter bot, ambience, cutscene test (2026-11-15)
+- Bot weapon choice is now situational (`pickWeapon` scores each gun by distance, crowd, bunching, enemies in a line and
+  target toughness, scaled by ammo left). With each gun used at its best, measured damage per shot rose for the claw
+  (13 -> 35) and phoenix rod (23 -> 35); `AMMO_DMG` was set to the new figures. Hellstaff (cool 0.17, dmg 11-14) and
+  firemace (dmg 12-16) buffed. Damage per second in use now: wand 24, shotgun 55, phoenix 52, claw 63, hellstaff 54,
+  mace 39, plasma 46, rocket 104. Curve unchanged (0-1 deaths per climb for the average bot).
+- Ambience: `ZONE_AMB` in 07-sound.js gives each zone an optional quiet loop (water in the sewers, fire in the foundry,
+  wind in the open zones) and stray noises every 10-25 s; `setAmbience`, `ambienceTick`. Sounds are Blasphemer's.
+- `python3 tools/cutscenes.py [sheet.png]`: plays the intro and ending through with WebGL and checks the hand-over and
+  the skip rules (10 checks). Run it after touching 14-intro.js, 15-ending.js or the menu flow.

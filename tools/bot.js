@@ -56,18 +56,30 @@ window.__bot = (function () {
     let d = a - P.a; d = Math.atan2(Math.sin(d), Math.cos(d));
     const step = Math.max(-rate * DT, Math.min(rate * DT, d)); P.a += step; return Math.abs(d - step);
   }
-  function pickWeapon(d, n, tgt) {
-    const has = w => P.owned[w] && P.ammo[w] > 0;
-    if (has('bfg') && n >= 4) return 'bfg';
-    if (has('dshot') && d < 2.8) return 'dshot';
-    if (has('rocket') && d > 3.5 && tgt.hp > 150) return 'rocket';
-    for (const w of ['plasma', 'hstaff', 'mace', 'phoenix', 'claw', 'ewand', 'dshot', 'rocket', 'bfg']) {
-      if (!has(w)) continue;
-      if ((w === 'phoenix' || w === 'rocket') && d < 2.2) continue;
-      if (w === 'mace' && d > 6) continue;
-      return w;
+  // Score every gun for the situation (distance, how many enemies, are they bunched or in a line, how tough the
+  // target is) and scale by how much ammo is left, so the bot plays each gun to its strength and spreads its ammo.
+  function pickWeapon(d, n, tgt, foes) {
+    const near = foes.filter(m => Math.hypot(m.x - tgt.x, m.y - tgt.y) < 2).length;            // bunched round the target
+    const ta = Math.atan2(tgt.y - P.y, tgt.x - P.x);
+    const lined = foes.filter(m => Math.abs(Math.atan2(Math.sin(Math.atan2(m.y - P.y, m.x - P.x) - ta), Math.cos(Math.atan2(m.y - P.y, m.x - P.x) - ta))) < 0.08).length;
+    const fit = {
+      ewand: 0.45,
+      dshot: d < 2.8 ? 1.5 : d < 5 ? 0.6 : 0.2,
+      phoenix: d < 2.2 ? 0 : 0.55 + 0.3 * (near - 1),
+      claw: d < 6 ? 0.45 + 0.35 * (Math.min(n, 3) - 1) : 0,
+      hstaff: 0.6 + 0.45 * (lined - 1),
+      mace: d < 6 ? 0.7 + 0.15 * (n - 1) : 0.1,
+      plasma: 0.95,
+      rocket: d < 3 ? 0 : (tgt.hp > 150 ? 1.2 : 0.3) + 0.3 * (near - 1),
+      bfg: n >= 4 || (tgt.boss && n >= 2) ? 2.5 : 0
+    };
+    let best = 'fist', bs = 0;
+    for (const w in fit) {
+      if (!P.owned[w] || P.ammo[w] <= 0) continue;
+      const sc = fit[w] * (0.4 + 0.6 * Math.min(1, P.ammo[w] / (CRATE_AMMO[w] * 2)));
+      if (sc > bs) { bs = sc; best = w; }
     }
-    return 'fist';
+    return best;
   }
   function tick() {
     for (const k of ['KeyW', 'KeyS', 'KeyA', 'KeyD']) keys[k] = false;
@@ -76,7 +88,7 @@ window.__bot = (function () {
     if (foes.length) {
       foes.sort((a, b) => Math.hypot(a.x - P.x, a.y - P.y) - Math.hypot(b.x - P.x, b.y - P.y));
       const t = foes[0], d = Math.hypot(t.x - P.x, t.y - P.y);
-      if ((wpnT -= DT) <= 0) { wpnT = 0.5; if (SK.smart || !P.owned[P.weapon] || (P.weapon !== 'fist' && P.ammo[P.weapon] <= 0) || P.weapon === 'fist') P.weapon = pickWeapon(d, SK.smart ? foes.length : 1, t); }
+      if ((wpnT -= DT) <= 0) { wpnT = 0.5; if (SK.smart || !P.owned[P.weapon] || (P.weapon !== 'fist' && P.ammo[P.weapon] <= 0) || P.weapon === 'fist') P.weapon = pickWeapon(d, SK.smart ? foes.length : 1, t, SK.smart ? foes : [t]); }
       const fist = P.weapon === 'fist'; z.fightTicks++; if (fist) z.fistTicks++; WS(P.weapon).ticks++;
       const err = turnTo(Math.atan2(t.y - P.y, t.x - P.x) + Math.sin(S.t * 3.1) * SK.err, SK.turn);
       if (err < (d < 3 ? 0.25 : 0.1) && (!fist || d < 1.4)) fire();
