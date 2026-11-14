@@ -7,7 +7,7 @@ Run after any change to enemy stats, rosters, loot or the formulas at the top of
 from playwright.sync_api import sync_playwright
 JS = r"""
 (function(){
-  const DPA = { pistol: 12, shotgun: 40, wand: 40, lightning: 25 };   // rough damage per unit of ammo in real play
+  const DPA0 = { pistol: 12, shotgun: 40, wand: 40, lightning: 25 };   // rough damage per unit of ammo in real play
   const rows = [];
   for (let z = 0; z < 10; z++) {
     const acc = { n: 0, hp: 0, ammo: 0, hit: 0, heal: 0, boss: 0, maxHp: 0 }, N = 12;
@@ -18,6 +18,7 @@ JS = r"""
       const ms = monsters.filter(m => !m.boss);
       acc.n += ms.length; acc.hp += ms.reduce((a, m) => a + m.hp, 0);
       acc.hit += ms.reduce((a, m) => a + m.dmg, 0) / ms.length;
+      const wm = typeof wpnMul === 'function' ? wpnMul(lv) : 1, DPA = {}; for (const w in DPA0) DPA[w] = DPA0[w] * wm;
       const am = typeof floorAmmo !== "undefined" ? floorAmmo : 1;
       const pool = Object.keys(WEAPON_FLOOR).filter(w => lv >= WEAPON_FLOOR[w]);
       const crate = pool.reduce((a, w) => a + Math.round(CRATE_AMMO[w] * am) * DPA[w], 0) / pool.length;

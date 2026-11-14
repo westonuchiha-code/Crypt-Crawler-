@@ -10,7 +10,7 @@ Run tools/pack_assets.py afterwards.
 import sys, os, re, glob, shutil, struct
 from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from enemy_cast import CAST, SETS, SHOTS
+from enemy_cast import CAST, SETS, SHOTS, ITEMS
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = {'f': sys.argv[1], 'b': sys.argv[2]}
@@ -38,9 +38,9 @@ for s, name in SETS.items():
             g = grab(f)
             if g and b not in offs: offs[b] = g
             Image.open(f).convert('RGBA').save(os.path.join(out, b + '.png'), optimize=True); kept.append(b)
-    for sh in SHOTS.values():                                   # projectile frames are named outright
+    for sh in list(SHOTS.values()) + list(ITEMS.values()):      # projectile and pickup frames are named outright
         for b in sh[1] if sh[0] == s else []:
-            Image.open(os.path.join(SRC[s], 'sprites', b + '.png')).convert('RGBA').save(os.path.join(out, b + '.png'), optimize=True); kept.append(b)
+            Image.open(sorted(glob.glob(os.path.join(SRC[s], 'sprites', b + '.*')))[-1]).convert('RGBA').save(os.path.join(out, b + '.png'), optimize=True); kept.append(b)
     with open(os.path.join(out, 'offsets.txt'), 'w') as fh:
         for b in kept:
             if b in offs: fh.write(f'{b} {offs[b][0]} {offs[b][1]}\n')

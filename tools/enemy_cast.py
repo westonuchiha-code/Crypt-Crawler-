@@ -41,4 +41,14 @@ SHOTS = {
     'bolt':   ('f', ['plssa0', 'plssb0'], 0.18),       # wizard's and the Archon's energy bolts
     'rocket': ('f', ['fatba1', 'fatbb1'], 0.24),       # the Titan
 }
+# Pickups lying on the floor: game item kind -> (set, frames, height in wall heights). Packed as window.ITEMS.
+ITEMS = {
+    'potion': ('b', ['ptn1a0', 'ptn1b0', 'ptn1c0'], 0.26),
+    'crate':  ('b', ['bagha0'], 0.34),                       # the weapon cache: a bag
+    'ammo':   ('b', ['amg2a0', 'amg2b0', 'amg2c0'], 0.24),   # ammo chest
+    'drop':   ('b', ['amg1a0'], 0.13),                       # small ammo dropped by an enemy
+    'armour': ('b', ['shlda0'], 0.40),
+    'fury':   ('b', ['pwbka0'], 0.30),                       # tome: double damage for a while
+    'ward':   ('b', ['invua0', 'invub0', 'invuc0', 'invud0'], 0.34),   # cannot be hurt for a while
+}
 SETS = {'f': 'freedoom', 'b': 'blasphemer'}

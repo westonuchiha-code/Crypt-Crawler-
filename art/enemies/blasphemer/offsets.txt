@@ -168,3 +168,17 @@ wzrdj0 29 39
 wzrdk0 32 41
 wzrdl0 28 34
 wzrdm0 28 29
+ptn1a0 4 25
+ptn1b0 4 25
+ptn1c0 4 25
+bagha0 7 32
+amg2a0 7 13
+amg2b0 7 13
+amg2c0 7 13
+amg1a0 4 10
+shlda0 15 41
+pwbka0 11 33
+invua0 8 32
+invub0 8 32
+invuc0 8 32
+invud0 8 32

@@ -174,3 +174,12 @@ The sounds were chosen by name, not by ear: expect some to need swapping once th
 Enemy projectiles are sprites now: `SHOTS` in tools/enemy_cast.py -> `window.SHOTS` -> `SHOT_PX`, drawn at eye height.
 Checked by simulation only (a player standing still next to each boss for 7 s loses 60-100% of max health); the feel of
 each fight still needs the user's play-testing. `m.scale` and `tex` only matter for the no-assets fallback.
+
+## Growth after floor 9: weapon power, armour, power-ups, pickup art (2026-11-14)
+- `wpnMul(lv)`: all player damage is +10% per zone (applied in `hurtMonster`); `floorAmmo` is divided by it so the
+  ammo margin in tools/balance.py stays the same while fights get shorter.
+- Armour (`P.armor`, max 100, +50 per pickup, soaks half of each hit; saved in the checkpoint). From floor 4; bosses drop one.
+- Power-ups from floor 6 (22% of floors, always on boss floors): `fury` = double damage 20 s, `ward` = no damage 8 s.
+- Pickups use Blasphemer item sprites: `ITEMS` in tools/enemy_cast.py -> `window.ITEMS` -> `ITEM_PX` (loader `loadSet`).
+- New weapons: NOT built. A mock-up of eight candidates (four Blasphemer, four Freedoom) was shown; waiting for the
+  user's pick. The art is hand-less, unlike the photo-hand guns, so check they accept the mix.
