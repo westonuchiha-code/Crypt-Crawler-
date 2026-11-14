@@ -14,7 +14,7 @@ don't design for it, and it comes out before release. The game is still early; e
 - **Ending (planned):** floor 100 breaks out onto an alien planet.
 
 Live build: Claude artifact https://claude.ai/artifact/9JUAfvhSNJcQNMox1yB1pe (slug 43397ed7-28db-4541-a9f7-31e7b520c09b,
-version 1794622178-40fd at hand-off). It's a multi-file artifact: index.html, assets.js and rqpad.js. If you can't publish to
+version 1794622178-40fd at hand-off). It's a multi-file artifact: index.html, assets.js, sounds.js and rqpad.js. If you can't publish to
 that slug, make a new artifact with the same three files and give the user the link.
 
 ## Files
@@ -28,6 +28,8 @@ that slug, make a new artifact with the same three files and give the user the l
 | tools/enemy_cast.py | The enemy cast: which sprite and which animation frames each enemy and boss uses. |
 | tools/import_enemies.py | Copies the needed frames from Freedoom / Blasphemer checkouts into art/enemies. |
 | tools/draw_monsters.py | Old: drew enemies in code (rejected). Kept for reference. |
+| sounds.js | **Generated; never edit by hand.** Sound effects as MP3 data, built by tools/pack_sounds.py. |
+| tools/sound_cast.py | Which sound plays for each game event and enemy. Edit this, then run tools/pack_sounds.py. |
 | tools/balance.py | Prints the balance table per zone: enemy health, ammo margin, hits to die, healing. |
 | tools/live.py | Smoke test: plays every weapon on several floors. Must print `errors: none`. |
 | tools/shoot.py | Screenshot contact sheet of weapon animations. |

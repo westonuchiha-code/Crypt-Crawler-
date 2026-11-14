@@ -156,3 +156,12 @@ enemy rosters, and per-enemy stats (some no longer match their new sprites, e.g.
 Title menu -> "credits" opens `#credits` inside the overlay (`showCredits`; Esc / Enter / Space close it). It lists every
 outside resource and carries the full Freedoom, Blasphemer and three.js licence texts. CREDITS.md at the repo root is the
 master list, including which credits are legally required and two texture sources still unknown. Update both together.
+
+## Sound (2026-11-14)
+Effects only, no music yet. Sources: Freedoom and Blasphemer .wav files in art/sounds (BSD-3, same notices as the sprites).
+tools/sound_cast.py maps game keys to files (`GENERAL` events; `KINDS` per enemy: see / atk / pain / die / act / shot);
+`python3 tools/pack_sounds.py` (needs ffmpeg) writes sounds.js, which must be published with the other files.
+In index.html: `audioInit()` starts Web Audio on the first key press or click and decodes everything; `sfx(key)`,
+`sfxAt(key, x, y)` (distance fade and left/right pan) and `msnd(monster, event)`. `sndVolume` is the master volume
+(no settings screen yet). Enemies cry out when they first see you (`m.woke`), and one nearby enemy growls every few seconds.
+The sounds were chosen by name, not by ear: expect some to need swapping once the user has listened.
