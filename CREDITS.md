@@ -5,8 +5,8 @@ keep the two in step. "Required" means the licence obliges us to ship the notice
 
 | Used for | Work | By | Licence | Credit required? |
 |---|---|---|---|---|
-| Enemies and bosses | Freedoom sprites | Freedoom project contributors | BSD 3-clause | **Yes**: ship art/enemies/freedoom/COPYING.adoc |
-| Enemies, bosses, pickups | Blasphemer sprites | Blasphemer project contributors | BSD 3-clause | **Yes**: ship art/enemies/blasphemer/COPYING.md |
+| Enemies, bosses, scenery | Freedoom sprites | Freedoom project contributors | BSD 3-clause | **Yes**: ship art/enemies/freedoom/COPYING.adoc |
+| Enemies, bosses, pickups, scenery | Blasphemer sprites | Blasphemer project contributors | BSD 3-clause | **Yes**: ship art/enemies/blasphemer/COPYING.md |
 | Sound effects | Freedoom and Blasphemer sounds (art/sounds) | same projects | BSD 3-clause | **Yes**: covered by the same two notices |
 | Intro and ending scenes | three.js r128 | three.js authors | MIT | **Yes**: ship its licence text |
 | Guns, staffs, wands | Freedoom and Blasphemer weapon sprites | same projects | BSD 3-clause | **Yes**: covered by the same two notices |

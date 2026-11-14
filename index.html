@@ -190,7 +190,7 @@ THE SOFTWARE.</pre>
 <script>
 (() => {
 const RW = 320, RH = 200, FOV_PLANE = 0.66;   // internal low-res buffer, scaled up to the window
-const STAIRS = 9, DOOR = 4, FINAL = 100;
+const STAIRS = 9, DOOR = 4, LOCKED = 5, SECRET = 6, FINAL = 100;   // map tiles: 0 floor, 1-3 walls, 4 door, 5 locked door, 6 secret wall
 // ---- the climb: 100 floors in 10 zones of 10; each zone ends with its boss on floor 10, 20 ... 100 ----
 // theme = index into THEMES (surface tiles); zones 4-10 reuse tile mixes until they get their own art (plan step 3).
 const ZONES = [
@@ -483,6 +483,7 @@ const THEMES = [
   { upTo: 999, walls: ['red_rock', 'red_relief', 'red_rock'], door: 'iron_door', floor: 'red_ground', sky: 'alien' }                // the other world
 ];
 const TILEPX = {};                     // name -> Uint32Array(64*64) once decoded
+WALLS[LOCKED] = new Uint32Array(4096); WALLS[SECRET] = new Uint32Array(4096);   // derived from the theme in applyTheme()
 const DRAWN = WALLS.map(w => w && w.slice());   // procedural fallbacks
 let FLOOR_TEX = null, CEIL_TEX = null, themeLv = 0, SKY_PX = null;
 // ---- open-sky panoramas for the high zones (no ceiling). 1536 x 100 strip wrapped round the player, drawn once ----
@@ -516,6 +517,13 @@ function applyTheme(lv) {
   const t = THEMES.find(t => lv <= t.upTo) || THEMES[THEMES.length - 1];
   const names = [null, ...t.walls, t.door];
   for (let i = 1; i < names.length; i++) WALLS[i].set(TILEPX[names[i]] || DRAWN[i]);
+  for (let i = 0; i < 4096; i++) {                           // locked door: the door, gilded, with a lock plate; secret wall: wall 1 a shade darker
+    const d = WALLS[DOOR][i], x = i & 63, y = i >> 6, plate = x > 24 && x < 39 && y > 24 && y < 41, hole = x > 29 && x < 34 && y > 29 && y < 37;
+    const r = d & 255, g = d >> 8 & 255, b = d >> 16 & 255;
+    WALLS[LOCKED][i] = hole ? 0xff101010 : plate ? 0xff30b0e0 : (0xff000000 | Math.min(255, r * 1.2 + 40) | Math.min(255, g * 1.05 + 18) << 8 | (b * 0.55) << 16) >>> 0;
+    const w = WALLS[1][i];
+    WALLS[SECRET][i] = (0xff000000 | ((w & 255) * 0.85) | ((w >> 8 & 255) * 0.85) << 8 | ((w >> 16 & 255) * 0.85) << 16) >>> 0;
+  }
   FLOOR_TEX = TILEPX[t.floor] || null; CEIL_TEX = TILEPX[t.ceil] || null; SKY_PX = t.sky ? skyPano(t.sky) : null;
 }
 if (window.TILES) for (const k in TILES) {
@@ -556,20 +564,22 @@ function loadSet(SET, DST, onFloor) {
       im.onload = () => {
         const c = mk(im.width, im.height); c.getContext('2d').drawImage(im, 0, 0);
         const px = toPixels(c); px.w = im.width; px.h = im.height; px.ox = im.width / 2;
-        px.oy = onFloor ? im.height : im.height / 2 + 0.5 / S.k; frames[i] = px;
+        px.oy = S.hang ? 1 / S.k : onFloor ? im.height : im.height / 2 + 0.5 / S.k; frames[i] = px;   // hung from the ceiling, stood on the floor, or at eye height
         if (--left === 0) DST[k] = { frames, k: S.k };
       };
       im.src = src;
     });
   }
 }
-loadSet(window.SHOTS, SHOT_PX, false); loadSet(window.ITEMS, ITEM_PX, true);
+const PROP_PX = {};
+loadSet(window.SHOTS, SHOT_PX, false); loadSet(window.ITEMS, ITEM_PX, true); loadSet(window.PROPS, PROP_PX, true);
 const ATK_T = 0.4, DIE_FPS = 9, WALK_FPS = 6;   // attack animation length (s), death and walk frame rates
 
 // ---------- state ----------
 const keys = {};
 const touchState = { joyX: 0, joyY: 0 };   // filled from RQPad.state.move in rqpad.js
 let W = 0, H = 0, map, explored, P, monsters = [], items = [], shots = [], pshots = [], bolts = [], stairsPos = null;
+let props = [], secrets = { total: 0, found: 0 }, lockMsgT = 0;   // scenery, this floor's secret rooms, 'locked' message throttle
 let level = 0, kills = 0, running = false, msgT = 0, mapOn = true;
 let pendingWin = 0, sealMsgT = 0, introActive = false, introSeen = false, endActive = false;
 const newPlayer = () => ({
@@ -592,6 +602,12 @@ const ROSTERS = [
   [['alien', 4], ['eye', 3], ['harpy', 1]],                                           // the void
   [['horror', 3], ['eye', 3], ['alien', 3]],                                          // alien spire
   [['horror', 3], ['alien', 2], ['eye', 2], ['golem', 1], ['angel', 1]]               // the other world
+];
+// Scenery per zone: [standing props (block movement), props hung from the ceiling (roofed zones only)].
+const ZONE_PROPS = [
+  [['srtc', 'brpl'], ['skh1']], [['barl', 'srtc'], ['mos1']], [['srtc', 'stgs'], ['skh1', 'hcor']], [['kfr1', 'smpl'], ['chdl']],
+  [['fcan', 'kfr1'], []], [['smpl', 'cbra'], []], [['smpl', 'tblu'], []], [['col1', 'elec', 'tblu'], []],
+  [['col3', 'tgrn', 'elec'], []], [['stgl', 'tre2', 'tred'], []]
 ];
 function pickKind(lv) {
   let list = ROSTERS[zoneOf(lv)];
@@ -618,7 +634,8 @@ const KIND = {
   harpy:  { hp: 40,  speed: 1.7, dmg: 5,  lunge: true, weave: 0.7, fly: true },                       // gargoyle: swoops
   alien:  { hp: 65,  speed: 1.1, dmg: 6,  ranged: true, shot: 'spit' },
   eye:    { hp: 85,  speed: 0.7, dmg: 7,  ranged: true, shot: 'spit', keep: 3.5, weave: 0.3, fly: true },
-  horror: { hp: 170, speed: 0.6, dmg: 9,  ranged: true, shot: 'blob', burst: 2, keep: 4, heavy: true }       // twin cannons
+  horror: { hp: 170, speed: 0.6, dmg: 9,  ranged: true, shot: 'blob', burst: 2, keep: 4, heavy: true },      // twin cannons
+  pod:    { hp: 15,  speed: 0, dmg: 0, prop: true }                                                   // explosive pod: not an enemy, bursts when shot
 };
 // Each zone's boss has its own moves on top of walking at you and shooting:
 //  burst: shots per volley; ring: [shots, every s] fired in all directions; stream: [shots, gap s] rapid fire in place of a volley
@@ -644,7 +661,7 @@ function spawnMonster(x, y, kind, lv) {
     dmg: Math.round(12 * dmgMul(lv)), ranged: true, heavy: true, ringT: 3, sumT: 5, blinkT: 4 }, BOSS_MOVES[zoneOf(lv)]);
   else {
     Object.assign(m, KIND[kind] || KIND.ghoul, { tex: SPR[SPR_FALLBACK[kind] || kind] || SPR.ghoul });
-    m.hp = Math.round(m.hp * hpMul(lv)); m.dmg = Math.round(m.dmg * dmgMul(lv));     // zone scaling for regular enemies
+    if (!m.prop) { m.hp = Math.round(m.hp * hpMul(lv)); m.dmg = Math.round(m.dmg * dmgMul(lv)); }     // zone scaling for regular enemies
   }
   m.maxHp = m.hp;
   return m;
@@ -657,7 +674,7 @@ function generateEntrance() {
   map = new Uint8Array(W * H).fill(2);
   for (let y = 2; y <= 5; y++) for (let x = 1; x <= 5; x++) map[y * W + x] = 0;
   map[1 * W + 3] = DOOR;
-  monsters = []; items = []; shots = []; pshots = []; floorAmmo = 1;
+  monsters = []; items = []; shots = []; pshots = []; floorAmmo = 1; props = []; secrets = { total: 0, found: 0 };
   explored = new Uint8Array(W * H).fill(1);
   P.x = 3.5; P.y = 4.5; P.a = -Math.PI / 2;
 }
@@ -723,10 +740,89 @@ function generate(lv) {
   map[far] = STAIRS;
   stairsPos = { x: (far % W) + 0.5, y: ((far / W) | 0) + 0.5 };
 
+  // ---- floor variety: secret rooms, scenery, a locked door with its key ----
+  const reserved = new Set();                                // cells that loot and enemies must not be dropped on
+  const isOpen = (x, y) => { const t = map[idx(x, y)]; return t === 0 || t === STAIRS; };
+  const D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  props = []; secrets = { total: 0, found: 0 }; P.keys = 0;
+  const secretLoot = [];
+  for (let n = 0, want = (Math.random() * 3) | 0, tries = 0; n < want && tries < 400; tries++) {   // 0-2 closets hidden behind a wall you can push open
+    const x = 2 + ((Math.random() * (W - 4)) | 0), y = 2 + ((Math.random() * (H - 4)) | 0);
+    if (map[idx(x, y)] < 1 || map[idx(x, y)] > 3) continue;
+    const open = D4.filter(([dx, dy]) => isOpen(x + dx, y + dy));
+    if (open.length !== 1) continue;
+    const dx = -open[0][0], dy = -open[0][1];                // dig away from the open side
+    const cells = [[x + dx, y + dy], [x + 2 * dx, y + 2 * dy], [x + 2 * dx + dy, y + 2 * dy + dx], [x + 2 * dx - dy, y + 2 * dy - dx]];
+    const mine = new Set(cells.map(([cx, cy]) => idx(cx, cy))); mine.add(idx(x, y));
+    const ok = cells.every(([cx, cy]) => cx > 1 && cy > 1 && cx < W - 2 && cy < H - 2 && map[idx(cx, cy)] >= 1 && map[idx(cx, cy)] <= 3 &&
+      [-1, 0, 1].every(ay => [-1, 0, 1].every(ax => mine.has(idx(cx + ax, cy + ay)) || !isOpen(cx + ax, cy + ay) && map[idx(cx + ax, cy + ay)] !== SECRET)));
+    if (!ok || Math.hypot(x - rooms[0].cx, y - rooms[0].cy) < 4) continue;
+    for (const [cx, cy] of cells) { map[idx(cx, cy)] = 0; reserved.add(idx(cx, cy)); }
+    map[idx(x, y)] = SECRET; n++; secrets.total++;
+    const pool = ['armour', 'potion', 'potion', 'drop', 'drop', lv >= 6 ? (Math.random() < 0.5 ? 'fury' : 'ward') : 'armour'];
+    for (let k = 1; k < 3; k++) secretLoot.push({ x: cells[k][0] + 0.5, y: cells[k][1] + 0.5, kind: pool[(Math.random() * pool.length) | 0], taken: false });
+  }
+  const zp = ZONE_PROPS[zoneOf(lv)], roofed = !(THEMES.find(t => lv <= t.upTo) || {}).sky;
+  for (const r of rooms) {                                   // torches, pillars and the like, one cell in from the corners
+    if (r.x1 - r.x0 < 4 || r.y1 - r.y0 < 4) continue;
+    for (const [px, py] of [[r.x0 + 1, r.y0 + 1], [r.x1 - 1, r.y0 + 1], [r.x0 + 1, r.y1 - 1], [r.x1 - 1, r.y1 - 1]]) {
+      if (map[idx(px, py)] !== 0 || Math.random() < 0.45) continue;
+      props.push({ x: px + 0.5, y: py + 0.5, kind: zp[0][(Math.random() * zp[0].length) | 0], solid: true }); reserved.add(idx(px, py));
+    }
+    if (roofed && zp[1].length && Math.random() < 0.5) {
+      const hx = r.cx + (Math.random() < 0.5 ? -1 : 1), hy = r.cy + (Math.random() < 0.5 ? -1 : 1);
+      props.push({ x: hx + 0.5, y: hy + 0.5, kind: zp[1][(Math.random() * zp[1].length) | 0], solid: false });
+    }
+  }
+  // locked door: a corridor cell that cuts the stairs off from the start (as near the stairs as possible) or, failing
+  // that, one that seals off a side area as a vault with extra loot; either way the key stays on your side
+  let keyCells = null;
+  if (lv >= 3 && !BOSS_NAMES[lv] && Math.random() < 0.9) {      // only about one floor in four has a spot that works
+    const reach = (block) => {
+      const seen = new Uint8Array(W * H), qq = [start]; seen[start] = 1;
+      for (let qi = 0; qi < qq.length; qi++) {
+        const c = qq[qi], x = c % W, y = (c / W) | 0;
+        for (const [dx, dy] of D4) { const n = idx(x + dx, y + dy); if (!seen[n] && n !== block && isOpen(x + dx, y + dy)) { seen[n] = 1; qq.push(n); } }
+      }
+      return seen;
+    };
+    let best = -1, bestSeen = null;
+    for (let c = 0; c < map.length; c++) {
+      if (map[c] !== 0 || c === start || dist[c] < 8 || dist[c] <= (best < 0 ? 0 : dist[best])) continue;
+      const x = c % W, y = (c / W) | 0;
+      const ew = !isOpen(x - 1, y) && !isOpen(x + 1, y) && isOpen(x, y - 1) && isOpen(x, y + 1);
+      const ns = !isOpen(x, y - 1) && !isOpen(x, y + 1) && isOpen(x - 1, y) && isOpen(x + 1, y);
+      if (!ew && !ns) continue;                              // only where a door fits: walls on both sides
+      const seen = reach(c);
+      if (!seen[far]) { best = c; bestSeen = seen; }
+    }
+    if (best < 0) {                                          // no way to gate the stairs: look for a vault instead
+      const all = reach(-1); let total = 0, cut = 0; for (let i = 0; i < all.length; i++) total += all[i];
+      for (let c = 0; c < map.length; c++) {
+        if (map[c] !== 0 || c === start || dist[c] < 6) continue;
+        const x = c % W, y = (c / W) | 0;
+        const ew = !isOpen(x - 1, y) && !isOpen(x + 1, y) && isOpen(x, y - 1) && isOpen(x, y + 1);
+        const ns = !isOpen(x, y - 1) && !isOpen(x, y + 1) && isOpen(x - 1, y) && isOpen(x + 1, y);
+        if (!ew && !ns) continue;
+        const seen = reach(c); let n = 0; for (let i = 0; i < seen.length; i++) n += seen[i];
+        const lost = total - n - 1;
+        if (lost >= 12 && lost <= total * 0.4 && lost > cut) { cut = lost; best = c; bestSeen = seen; }
+      }
+      if (best >= 0) {                                       // stock the vault
+        const inside = []; for (let i = 0; i < map.length; i++) if (map[i] === 0 && all[i] && !bestSeen[i] && i !== best && !reserved.has(i)) inside.push(i);
+        for (const kind of ['armour', lv >= 6 ? 'fury' : 'potion', 'potion']) {
+          const c = inside.splice((Math.random() * inside.length) | 0, 1)[0];
+          if (c !== undefined) { secretLoot.push({ x: (c % W) + 0.5, y: ((c / W) | 0) + 0.5, kind, taken: false }); reserved.add(c); }
+        }
+      }
+    }
+    if (best >= 0) { map[best] = LOCKED; keyCells = bestSeen; }
+  }
+
   // free floor cells away from the spawn
   const free = [];
   for (let i = 0; i < map.length; i++) {
-    if (map[i] !== 0) continue;
+    if (map[i] !== 0 || reserved.has(i)) continue;
     const x = i % W, y = (i / W) | 0;
     if (Math.hypot(x - sRoom.cx, y - sRoom.cy) > 6) free.push(i);
   }
@@ -737,7 +833,13 @@ function generate(lv) {
   };
   const cellXY = c => [(c % W) + 0.5, ((c / W) | 0) + 0.5];
 
-  items = []; shots = []; pshots = [];
+  items = secretLoot; shots = []; pshots = [];
+  if (keyCells) {                                            // the key: somewhere you can reach without the door, not too close to the start
+    const cand = free.filter(i => keyCells[i]), far2 = cand.filter(i => dist[i] > 6);
+    const pick = (far2.length ? far2 : cand)[(Math.random() * (far2.length ? far2 : cand).length) | 0];
+    if (pick === undefined) map[map.indexOf(LOCKED)] = 0;    // nowhere to put it: no lock after all
+    else { free.splice(free.indexOf(pick), 1); const [kx, ky] = cellXY(pick); items.push({ x: kx, y: ky, kind: 'key', taken: false }); }
+  }
   const addItem = (kind) => { if (!free.length) return; const [x, y] = cellXY(take()); items.push({ x, y, kind, taken: false }); };
   for (let i = 0; i < potionCount(lv); i++) addItem('potion');
   addItem('crate');                                   // one weapon crate per floor
@@ -766,13 +868,16 @@ function generate(lv) {
     monsters.push(spawnMonster(x, y, kind, lv));
   }
 
+  for (let i = 0, n = lv >= 5 ? (Math.random() * 4) | 0 : 0; i < n && free.length; i++) {   // explosive pods
+    const [x, y] = cellXY(take()); monsters.push(spawnMonster(x, y, 'pod', lv));
+  }
   // size this floor's ammo to what stands on it: unscaled, the floor would hold `base` damage worth of ammo
   const pool = Object.keys(WEAPON_FLOOR).filter(w => lv >= WEAPON_FLOOR[w]);
   const boxDmg = pool.reduce((a, w) => a + BOX_AMMO[w] * AMMO_DMG[w], 0);
   const crateDmg = pool.reduce((a, w) => a + CRATE_AMMO[w] * AMMO_DMG[w], 0) / pool.length;
   const base = items.reduce((a, it) => a + (it.kind === 'crate' ? crateDmg : it.kind === 'ammo' ? boxDmg : 0), 0)
     + monsters.length * 0.3 * boxDmg / 2 / pool.length;
-  floorAmmo = Math.max(1, monsters.reduce((a, m) => a + m.hp, 0) * AMMO_RATIO(lv) / base) / wpnMul(lv);   // stronger weapons need fewer rounds
+  floorAmmo = Math.max(1, monsters.reduce((a, m) => a + (m.prop ? 0 : m.hp), 0) * AMMO_RATIO(lv) / base) / wpnMul(lv);   // stronger weapons need fewer rounds
 
   explored = new Uint8Array(W * H);
   P.x = sRoom.cx + 0.5; P.y = sRoom.cy + 0.5; P.a = 0;
@@ -787,6 +892,7 @@ function solid(x, y) {
 }
 function blocked(x, y) {
   const r = 0.2;
+  for (const pr of props) if (pr.solid && Math.abs(pr.x - x) < 0.32 && Math.abs(pr.y - y) < 0.32) return true;
   return solid(x - r, y - r) || solid(x + r, y - r) || solid(x - r, y + r) || solid(x + r, y + r);
 }
 function moveEnt(e, dx, dy) {
@@ -928,6 +1034,8 @@ function pickupItem(kind) {
   if (kind === 'potion') {
     P.hp = Math.min(P.maxHp, P.hp + potionHeal(level));
     showMsg(`Healing draught +${potionHeal(level)} HP`);
+  } else if (kind === 'key') {
+    P.keys = (P.keys || 0) + 1; showMsg('A key');
   } else if (kind === 'armour') {
     P.armor = Math.min(ARMOUR_MAX, P.armor + ARMOUR_PICKUP); showMsg(`Armour +${ARMOUR_PICKUP}`);
   } else if (kind === 'fury') {
@@ -975,6 +1083,14 @@ function hurtMonster(m, dmg, knock = 0, stun = 0, fx = P.x, fy = P.y) {
     m.kbx = (m.kbx || 0) + ex / d * k; m.kby = (m.kby || 0) + ey / d * k;
   }
   if (stun) m.stun = Math.max(m.stun || 0, stun * (m.boss ? 0.3 : 1));
+  if (m.hp <= 0 && m.prop) {                                 // a pod bursts: hurts everything close, you included
+    m.dead = true; m.dieT = 0; m.art = monArtKey(m); sfxAt('bigboom', m.x, m.y);
+    pshots.push({ kind: 'boom', x: m.x, y: m.y, vx: 0, vy: 0, life: 0.25, static: true, dead: false, size: 2.2 });
+    for (const o of monsters) if (!o.dead && Math.hypot(o.x - m.x, o.y - m.y) < 2.2) hurtMonster(o, 70, 1.2, 0.3, m.x, m.y);
+    const pd = Math.hypot(P.x - m.x, P.y - m.y);
+    if (pd < 2.2) hurtPlayer(Math.round(30 * dmgMul(level) * (1 - pd / 2.6)));
+    return;
+  }
   if (m.hp <= 0) {
     m.dead = true; m.dieT = 0; m.art = monArtKey(m); kills++; msnd(m, 'die');
     // enemies sometimes drop a little ammo; bosses always leave a weapon crate and an ammo box
@@ -1290,6 +1406,7 @@ function updateMonsters(dt) {
   for (const m of monsters) {
     if (m.dead) { m.dieT += dt; continue; }               // corpses only play out their death frames
     m.hurt -= dt; m.mcool -= dt; m.rcool -= dt; m.atk = (m.atk || 0) - dt; m.animT = (m.animT || 0) + dt;
+    if (m.prop) continue;                                   // pods just sit there
     if (m.kbx || m.kby) {                                   // knockback slides out over ~0.2 s
       moveEnt(m, m.kbx * dt, m.kby * dt);
       const decay = Math.max(0, 1 - 9 * dt); m.kbx *= decay; m.kby *= decay;
@@ -1378,7 +1495,7 @@ function update(dt) {
   actT -= dt;                                                 // now and then something nearby growls
   if (actT <= 0) {
     actT = rnd(2.5, 6);
-    const near = monsters.filter(m => !m.dead && Math.hypot(m.x - P.x, m.y - P.y) < 10);
+    const near = monsters.filter(m => !m.dead && !m.prop && Math.hypot(m.x - P.x, m.y - P.y) < 10);
     if (near.length) msnd(near[(Math.random() * near.length) | 0], 'act', 0.7);
   }
   updateShots(dt);
@@ -1391,6 +1508,16 @@ function update(dt) {
   }
   items = items.filter(i => !i.taken);
 
+  lockMsgT -= dt;
+  if (level > 0) {                                           // walk into a locked door or a secret wall while facing it
+    const ax = Math.floor(P.x + Math.cos(P.a) * 0.62), ay = Math.floor(P.y + Math.sin(P.a) * 0.62), at = ay * W + ax, t = map[at];
+    if (t === LOCKED) {
+      if (P.keys > 0) { P.keys--; map[at] = 0; sfx('door'); showMsg('The door opens'); }
+      else if (lockMsgT <= 0) { lockMsgT = 2.5; sfx('noway'); showMsg('Locked. The key is somewhere on this floor'); }
+    } else if (t === SECRET) {
+      map[at] = 0; secrets.found++; sfx('power'); showMsg(`A secret room! (${secrets.found} of ${secrets.total})`);
+    }
+  }
   if (level === 0) {
     if (Math.hypot(P.x - 3.5, P.y - 1.5) < 1.1) { nextLevel(); return; }
   } else if (map[Math.floor(P.y) * W + Math.floor(P.x)] === STAIRS && level < FINAL) {
@@ -1411,7 +1538,7 @@ function update(dt) {
   const ammoTxt = wdef.ammo ? P.ammo[P.weapon] : '∞';
   const b = monsters.find(m => m.boss && !m.dead);
   const floorTxt = level === 0 ? 'ENTRANCE' : `FLOOR ${level} · ${ZONES[zoneOf(level)].name.replace('THE ', '')}`;
-  const extra = (P.armor > 0 ? ` · ARMOUR ${P.armor}` : '') + (P.fury > 0 ? ` · FURY ${Math.ceil(P.fury)}s` : '') + (P.ward > 0 ? ` · WARD ${Math.ceil(P.ward)}s` : '');
+  const extra = (P.keys > 0 ? ' · KEY' : '') + (P.armor > 0 ? ` · ARMOUR ${P.armor}` : '') + (P.fury > 0 ? ` · FURY ${Math.ceil(P.fury)}s` : '') + (P.ward > 0 ? ` · WARD ${Math.ceil(P.ward)}s` : '');
   stats.textContent = `HP ${Math.ceil(P.hp)}/${P.maxHp}${extra} · ${floorTxt} · ${wdef.name} ${ammoTxt} · SLAIN ${kills}${b ? ` · ${b.name} ${b.hp}/${b.maxHp}` : ''}`;
 }
 
@@ -1528,8 +1655,12 @@ function renderSprites(dirX, dirY, planeX, planeY) {
   for (const it of items) if (!it.taken) {
     const art = ITEM_PX[it.kind];
     if (art) list.push({ x: it.x, y: it.y, tex: art.frames[Math.floor(performance.now() / 180) % art.frames.length], hurt: false, mon: true, k: art.k,
-      lift: it.kind === 'fury' || it.kind === 'ward' ? 0.12 + 0.03 * Math.sin(performance.now() / 300) : 0 });      // power-ups hover
-    else list.push({ x: it.x, y: it.y, tex: SPR[SPR[it.kind] ? it.kind : it.kind === 'drop' ? 'ammo' : 'potion'], hurt: false, v: it.kind === 'drop' ? 0.38 : 0.3, scale: it.kind === 'drop' ? 0.5 : 0.8 });
+      lift: it.kind === 'fury' || it.kind === 'ward' || it.kind === 'key' ? 0.12 + 0.03 * Math.sin(performance.now() / 300) : 0 });      // power-ups hover
+    else list.push({ x: it.x, y: it.y, tex: SPR[SPR[it.kind] ? it.kind : it.kind === 'drop' ? 'ammo' : it.kind === 'key' ? 'crate' : 'potion'], hurt: false, v: it.kind === 'drop' ? 0.38 : 0.3, scale: it.kind === 'drop' ? 0.5 : 0.8 });
+  }
+  for (const pr of props) {
+    const art = PROP_PX[pr.kind];
+    if (art) list.push({ x: pr.x, y: pr.y, tex: art.frames[Math.floor(performance.now() / 140) % art.frames.length], hurt: false, mon: true, k: art.k, lift: 0 });
   }
   for (const s of shots) {
     const art = SHOT_PX[s.kind];
@@ -1929,16 +2060,16 @@ function drawOverlays() {
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       if (!explored[y * W + x]) continue;
       const t = map[y * W + x];
-      bctx.fillStyle = t === STAIRS ? '#e8d9a0' : (t > 0 ? '#8a8a8a' : '#2e2e35');
+      bctx.fillStyle = t === STAIRS ? '#e8d9a0' : t === LOCKED ? '#e0a020' : (t > 0 ? '#8a8a8a' : '#2e2e35');
       bctx.fillRect(ox + x * cs, oy + y * cs, cs, cs);
     }
-    const colors = { potion: '#4f4', crate: '#e0b737', ammo: '#aab', drop: '#aab', armour: '#8cf', fury: '#f80', ward: '#fff' };
+    const colors = { potion: '#4f4', crate: '#e0b737', ammo: '#aab', drop: '#aab', armour: '#8cf', fury: '#f80', ward: '#fff', key: '#fd0' };
     for (const it of items) {
       const i = Math.floor(it.y) * W + Math.floor(it.x);
       if (explored[i]) { bctx.fillStyle = colors[it.kind]; bctx.fillRect(ox + Math.floor(it.x) * cs, oy + Math.floor(it.y) * cs, cs, cs); }
     }
     for (const m of monsters) {
-      if (m.dead) continue;
+      if (m.dead || m.prop) continue;
       const i = Math.floor(m.y) * W + Math.floor(m.x);
       if (explored[i]) { bctx.fillStyle = m.boss ? '#c0f' : '#f44'; bctx.fillRect(ox + Math.floor(m.x) * cs, oy + Math.floor(m.y) * cs, cs, cs); }
     }

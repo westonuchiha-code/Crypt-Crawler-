@@ -15,7 +15,7 @@ JS = r"""
       const lv = z * 10 + 2 + (k % 8);          // non-boss floors 2..9 of the zone
       P = newPlayer(); level = lv; if (typeof zoneMaxHp === "function") P.maxHp = zoneMaxHp(lv);
       generate(lv);
-      const ms = monsters.filter(m => !m.boss);
+      const ms = monsters.filter(m => !m.boss && !m.prop);
       acc.n += ms.length; acc.hp += ms.reduce((a, m) => a + m.hp, 0);
       acc.hit += ms.reduce((a, m) => a + m.dmg, 0) / ms.length;
       const wm = typeof wpnMul === 'function' ? wpnMul(lv) : 1, DPA = {}; for (const w in DPA0) DPA[w] = DPA0[w] * wm;

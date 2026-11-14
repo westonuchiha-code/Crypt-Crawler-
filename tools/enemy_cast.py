@@ -20,6 +20,7 @@ CAST = {
     'alien':  ('f', 'skel', 1.05, 'ABC',    'JK',   'L',  'MNOPQ'),
     'eye':    ('f', 'head', 0.85, 'A',      'BCD',  'E',  'GHIJKL'),
     'horror': ('f', 'fatt', 1.15, 'ABCDEF', 'GHI',  'J',  'KLMNOPQRST'),
+    'pod':    ('b', 'ppod', 0.42, 'A',      'B',    'B',  'CDEFG'),             # explosive pod: scenery you can shoot
     'boss1':  ('b', 'sor2', 1.70, 'MNOP',   'RST',  'Q',  'FEDCBA'),            # the Warden: a skeleton lord (dies by its rise played backwards)
     'boss2':  ('b', 'snke', 1.60, 'ABCD',   'EF',   'E',  'GHIJKLMNOP'),        # the Sewer King
     'boss3':  ('b', 'head', 1.90, 'A',      'B',    'A',  'CDEFGHI'),           # the Hollow Queen
@@ -50,6 +51,31 @@ ITEMS = {
     'armour': ('b', ['shlda0'], 0.40),
     'fury':   ('b', ['pwbka0'], 0.30),                       # tome: double damage for a while
     'ward':   ('b', ['invua0', 'invub0', 'invuc0', 'invud0'], 0.34),   # cannot be hurt for a while
+    'key':    ('b', ['ckyya0', 'ckyyb0', 'ckyyc0', 'ckyyd0', 'ckyye0', 'ckyyf0', 'ckyyg0', 'ckyyh0', 'ckyyi0'], 0.30),
+}
+# Scenery: name -> (set, frames, hangs from the ceiling?). Standing props are drawn at 0.7 wall per 64 px, hung ones at 0.4.
+# Which zone uses which is in index.html (ZONE_PROPS). Packed as window.PROPS.
+PROPS = {
+    'srtc': ('b', ['srtca0', 'srtcb0', 'srtcc0'], False),    # serpent torch
+    'brpl': ('b', ['brpla0'], False),                        # brown pillar
+    'barl': ('b', ['barla0'], False),                        # barrel
+    'stgs': ('b', ['stgsa0'], False),                        # small stalagmite
+    'stgl': ('b', ['stgla0'], False),                        # large stalagmite
+    'smpl': ('b', ['smpla0'], False),                        # small pillar
+    'kfr1': ('b', ['kfr1a0', 'kfr1b0', 'kfr1c0', 'kfr1d0', 'kfr1e0', 'kfr1f0', 'kfr1g0', 'kfr1h0'], False),   # fire brazier
+    'skh1': ('b', ['skh1a0'], True),                         # hanging skull
+    'hcor': ('b', ['hcora0'], True),                         # hanging corpse
+    'mos1': ('b', ['mos1a0'], True),                         # hanging moss
+    'chdl': ('b', ['chdla0', 'chdlb0', 'chdlc0'], True),     # chandelier
+    'fcan': ('f', ['fcana0', 'fcanb0', 'fcanc0'], False),    # burning barrel
+    'cbra': ('f', ['cbraa0'], False),                        # candelabra
+    'col1': ('f', ['col1a0'], False),                        # tech column
+    'col3': ('f', ['col3a0'], False),
+    'elec': ('f', ['eleca0'], False),                        # tall tech pylon
+    'tblu': ('f', ['tblua0', 'tblub0', 'tbluc0', 'tblud0'], False),   # blue / green / red torches
+    'tgrn': ('f', ['tgrna0', 'tgrnb0', 'tgrnc0', 'tgrnd0'], False),
+    'tred': ('f', ['treda0', 'tredb0', 'tredc0', 'tredd0'], False),
+    'tre2': ('f', ['tre2a0'], False),                        # dead tree
 }
 # First-person weapons: game weapon id -> (set, idle frame, firing sequence). Each step of the sequence is
 # (fraction of the firing animation by which it ends, frames drawn on top of each other: weapon, then muzzle flash).

@@ -196,7 +196,7 @@ with open(out, 'w') as fh:
     # window.MONSTERS[kind] = { k: wall heights per sprite pixel, walk/atk/die: frame indexes, pain: index,
     #                           frames: [[png data uri, origin x, origin y], ...] }; the origin stands on the floor.
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from enemy_cast import CAST, SETS, SHOTS, ITEMS, HELD, held_frames
+    from enemy_cast import CAST, SETS, SHOTS, ITEMS, HELD, held_frames, PROPS
     mons, offs = {}, {}
     for sname in SETS.values():
         for line in open(os.path.join(ROOT, 'art', 'enemies', sname, 'offsets.txt')):
@@ -228,7 +228,7 @@ with open(out, 'w') as fh:
             box = [min(im.getbbox()[i] for im in ims) for i in (0, 1)] + [max(im.getbbox()[i] for im in ims) for i in (2, 3)]
             ims = [im.crop(box) for im in ims]                # one shared box, so animated frames do not jitter
             for im in ims: im.putalpha(im.getchannel('A').point(lambda a: 255 if a >= 128 else 0))
-            out[name] = {'k': round(tall / ims[0].height, 5), 'frames': [pal_uri(im) for im in ims]}
+            out[name] = {'k': round(tall / ims[0].height, 5) if tall else round(0.95 / 64, 5), 'frames': [pal_uri(im) for im in ims]}
         return out
     held = {}
     for w, (sset, idle, seq) in HELD.items():
@@ -243,6 +243,9 @@ with open(out, 'w') as fh:
         held[w] = {'idle': idle, 'seq': seq, 'shift': shift, 'scale': scale, 'frames': {n: f[:3] for n, f in fr.items()}}
     fh.write('window.HELD = ' + json.dumps(held) + ';\n')
     fh.write('window.ITEMS = ' + json.dumps(small_set(ITEMS)) + ';\n')
+    props = small_set({n: (s, f, None) for n, (s, f, hang) in PROPS.items()})
+    for n in props: props[n]['hang'] = PROPS[n][2]; props[n]['k'] = round((0.4 if PROPS[n][2] else 0.7) / 64, 5)   # hung things stay clear of your head
+    fh.write('window.PROPS = ' + json.dumps(props) + ';\n')
     shots = {}
     for name, (sset, files, tall) in SHOTS.items():
         ims = [Image.open(os.path.join(ROOT, 'art', 'enemies', SETS[sset], f + '.png')).convert('RGBA') for f in files]

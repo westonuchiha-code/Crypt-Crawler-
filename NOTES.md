@@ -196,3 +196,18 @@ everything else (this overrides the older "photo-hand look" preference in the he
 - An ammo chest now only stocks guns unlocked on that floor. `AMMO_DMG` feeds both the per-floor ammo sizing and tools/balance.py.
 - The vector weapons (`draw*Art`) and `ART` entries for the old ids are dead code kept as fallback; tools/shoot.py is stale.
 - Damage per shot was measured once in a test room; the five new guns are not play-tuned.
+
+## Floor variety (2026-11-14): secrets, locked doors, scenery, explosive pods
+All in `generate()` after the stairs are placed (block "floor variety"), then used by the item and enemy placement below it.
+- Map tiles: `LOCKED` = 5 and `SECRET` = 6 (textures derived from the theme in `applyTheme`). Both are solid. In `update()`,
+  facing one from under 0.62 cells opens it: a secret wall always, a locked door if `P.keys > 0` (keys reset every floor).
+- Secrets: 0-2 closets of 4 cells dug behind a wall with exactly one open side, 2 pickups each. `secrets.total/found`.
+- Locked door (floors 3+, never boss floors): the corridor cell that cuts the stairs off from the start, nearest the stairs;
+  if no such cell exists, a cell that seals a side area of 12+ cells as a vault with 3 extra pickups. The `key` item is
+  always placed on the start side. Only ~1 floor in 4 has a usable spot, because the corridors loop a lot.
+- Scenery: `ZONE_PROPS` per zone -> `props` (solid ones block movement via `blocked()`, never shots or sight); art table
+  `PROPS` in tools/enemy_cast.py -> `window.PROPS` -> `PROP_PX`. Hung props only in roofed zones.
+- Explosive pods: monster kind `pod` with `prop: true` (no AI, not counted as a kill, not on the minimap, ignored by the
+  ammo sizing). Bursting hurts everything within 2.2 cells, the player too, and chains to other pods.
+- A 400-floor generation test confirmed: key always reachable without the door, stairs and all loot and enemies reachable.
+Not done from this item: traps other than pods.
