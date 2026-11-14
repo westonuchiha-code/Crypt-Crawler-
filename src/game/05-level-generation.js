@@ -54,6 +54,7 @@ const KIND = {
 // Each zone's boss has its own moves on top of walking at you and shooting:
 //  burst: shots per volley; ring: [shots, every s] fired in all directions; stream: [shots, gap s] rapid fire in place of a volley
 //  summon: [kind, most alive, every s]; lunge: charges; blink: [every s] vanishes and reappears beside you
+//  phase2: changes applied once, at half health (with phase2Msg, a burst of shots in every direction and a flash)
 const BOSS_MOVES = [
   { shot: 'bolt',   summon: ['ghoul', 2, 12] },                              // the Warden raises the dead
   { shot: 'spit',   burst: 3 },                                             // the Sewer King spits a fan
@@ -64,8 +65,15 @@ const BOSS_MOVES = [
   { shot: 'heavy',  burst: 2, ring: [6, 8] },                               // the Skywyrm
   { shot: 'bolt',   stream: [6, 0.2] },                                    // the Void Archon: a hose of bolts
   { shot: 'fire',   blink: [10], ring: [8, 8] },                            // the Star-Eater steps through space
-  { shot: 'rocket', burst: 3, summon: ['horror', 1, 20], ring: [10, 9] }    // the Spire Titan: rockets, rings and reinforcements
+  { shot: 'rocket', burst: 3, summon: ['horror', 1, 20], ring: [10, 9],
+    phase2: { burst: 4, speed: 1.0, ring: [14, 7], stream: null }, phase2Msg: 'The Titan tears off its armour and comes for you' }    // the Spire Titan: rockets, rings and reinforcements
 ];
+// What each enemy is called when it kills you (bosses use their own names).
+const FOE_NAME = { rat: 'a flesh worm', ghoul: 'a hooded ghoul', skel: 'a sabreclaw', imp: 'a serpentipede', flame: 'a burning skull',
+  angel: 'a wizard', slime: 'a red beast', knight: 'an undead knight', golem: 'a steel brute', harpy: 'a gargoyle', alien: 'a mutant',
+  eye: 'a floating horror', horror: 'a cannon horror', trooper: 'a dead trooper', sarge: 'a shotgun sergeant', gunner: 'a heavy gunner',
+  spider: 'a machine spider' };
+const foeName = m => !m ? 'a dart' : m.boss ? m.name : FOE_NAME[m.kind] || 'something';
 const SPR_FALLBACK = { trooper: 'imp', sarge: 'imp', gunner: 'imp', spider: 'ghoul', slime: 'ghoul', knight: 'skel', golem: 'ghoul', harpy: 'imp', alien: 'imp', eye: 'flame', horror: 'ghoul' };
 function spawnMonster(x, y, kind, lv) {
   const m = { x, y, kind, dead: false, hurt: 0, mcool: 0, rcool: rnd(1, 2.5), wander: 0, wa: 0, ph: rnd(0, 6.28),

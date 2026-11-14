@@ -94,7 +94,8 @@ function resumeGame() {
 function die() {
   sfx('death'); clearResume(); bumpStats({ deaths: 1 }); zoneDeaths++;
   const rec = saveBest(), cp = loadCheckpoint();
-  showMenu('GAME OVER', `${rec ? 'NEW RECORD! ' : ''}Fell on floor ${level} · ${kills} slain`,
+  const zn = ZONES[zoneOf(Math.max(1, level))].name, inZone = level > 0 ? ((level - 1) % 10) + 1 : 0;
+  showMenu('GAME OVER', `${rec ? 'NEW RECORD! ' : ''}Killed by ${P.killer || 'the Spire'} on floor ${level} · ${zn}, floor ${inZone} of 10 · ${kills} slain · ${clock(runT)} into the climb`,
     cp ? `CONTINUE FROM FLOOR ${cp.floor}? PRESS START` : 'CONTINUE? PRESS START', true);
 }
 function victory() {

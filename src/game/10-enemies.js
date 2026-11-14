@@ -16,6 +16,11 @@ function volley(m) {
 // Boss extras, run every frame while it can see you (see BOSS_MOVES).
 function bossMoves(m, dt, d) {
   const rage = m.hp < m.maxHp / 2 ? 0.7 : 1;                  // below half health everything comes faster
+  if (m.phase2 && !m.p2 && m.hp < m.maxHp / 2) {              // second phase: new moves, announced with a blast in every direction
+    m.p2 = true; Object.assign(m, m.phase2); m.ringT = m.ring ? m.ring[1] : 9; m.stun = 0;
+    for (let i = 0; i < 18; i++) spawnShot(m, 0, 0.5, i / 18 * Math.PI * 2);
+    P.nova = 0.3; msnd(m, 'see', 1.2); showMsg(m.phase2Msg || `${m.name} is enraged`);
+  }
   if (m.ring && (m.ringT -= dt) <= 0) {
     m.ringT = m.ring[1] * rage; m.atk = ATK_T; msnd(m, 'shot') || sfxAt('eshot', m.x, m.y);
     for (let i = 0; i < m.ring[0]; i++) spawnShot(m, 0, 0.5, m.ph + i / m.ring[0] * Math.PI * 2);
@@ -46,7 +51,7 @@ function updateShots(dt) {
   for (const s of shots) {
     s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; s.t += dt;
     if (solid(s.x, s.y)) { s.life = -1; continue; }
-    if (Math.hypot(s.x - P.x, s.y - P.y) < 0.4) { s.life = -1; sfx('eboom', 0.7); hurtPlayer(s.dmg, s.x - s.vx, s.y - s.vy); continue; }
+    if (Math.hypot(s.x - P.x, s.y - P.y) < 0.4) { s.life = -1; sfx('eboom', 0.7); hurtPlayer(s.dmg, s.x - s.vx, s.y - s.vy, foeName(s.owner)); continue; }
     if (s.owner) for (const o of monsters) {                  // enemy shots hit other enemies too (never their own kind)
       if (o.dead || o === s.owner || o.kind === s.owner.kind || Math.hypot(o.x - s.x, o.y - s.y) > (o.boss ? 0.5 : 0.3)) continue;
       s.life = -1; monsterHurt(o, s.dmg, s.owner); break;
@@ -86,7 +91,7 @@ function updateMonsters(dt) {
     if (m.stun > 0) { m.stun -= dt; continue; }             // stunned: no moving or attacking
     if (m.grudge && (m.grudge.dead || (m.grudgeT -= dt) <= 0 || !los(m.x, m.y, m.grudge.x, m.grudge.y))) m.grudge = null;
     const T = m.grudge || P; m.foe = m.grudge;                 // its target this frame
-    const hit = () => { if (T === P) hurtPlayer(m.dmg, m.x, m.y); else monsterHurt(T, m.dmg, m); };
+    const hit = () => { if (T === P) hurtPlayer(m.dmg, m.x, m.y, foeName(m)); else monsterHurt(T, m.dmg, m); };
     const ex = T.x - m.x, ey = T.y - m.y, d = Math.hypot(ex, ey) || 1;
     const spd = (0.85 + 0.04 * zoneOf(level) + 0.01 * ((level - 1) % 10)) * m.speed * dt;
     if (m.lungeT > 0) {                                     // mid-charge: straight on, three times as fast

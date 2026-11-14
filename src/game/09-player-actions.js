@@ -1,5 +1,6 @@
 // ---------- the player: taking damage, pickups, weapons and every kind of attack ----------
-function hurtPlayer(n, fx, fy) {                              // (fx, fy): where the hit came from, for the direction marker
+function hurtPlayer(n, fx, fy, by) {                          // (fx, fy): where the hit came from, for the direction marker; by: what did it
+  if (by) P.killer = by;
   if (!running) return;
   if (P.ward > 0) return;
   if (fx !== undefined) { P.hitA = Math.atan2(fy - P.y, fx - P.x); P.hitT = 0.7; } else P.hitT = 0;
@@ -77,7 +78,7 @@ function hurtMonster(m, dmg, knock = 0, stun = 0, fx = P.x, fy = P.y) {
     for (const o of monsters) if (!o.dead && Math.hypot(o.x - m.x, o.y - m.y) < 2.2) hurtMonster(o, 70, 1.2, 0.3, m.x, m.y);
     if (kills - k0 >= 3) unlock('pod');
     const pd = Math.hypot(P.x - m.x, P.y - m.y);
-    if (pd < 2.2) hurtPlayer(Math.round(30 * dmgMul(level) * (1 - pd / 2.6)), m.x, m.y);
+    if (pd < 2.2) hurtPlayer(Math.round(30 * dmgMul(level) * (1 - pd / 2.6)), m.x, m.y, 'an exploding pod');
     return;
   }
   if (m.hp <= 0) killMonster(m, true);

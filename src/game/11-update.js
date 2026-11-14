@@ -77,7 +77,7 @@ function update(dt) {
     const up = trapUp(tr);
     if (up && !tr.was) sfxAt('swing', tr.x + 0.5, tr.y + 0.5, 0.7);
     tr.was = up;
-    if (up && trapHurtT <= 0 && Math.floor(P.x) === tr.x && Math.floor(P.y) === tr.y) { trapHurtT = 0.6; hurtPlayer(Math.round(TRAP_DMG * dmgMul(level))); showMsg('Spikes!'); }
+    if (up && trapHurtT <= 0 && Math.floor(P.x) === tr.x && Math.floor(P.y) === tr.y) { trapHurtT = 0.6; hurtPlayer(Math.round(TRAP_DMG * dmgMul(level)), undefined, undefined, 'floor spikes'); showMsg('Spikes!'); }
   }
   if (level > 0) {                                           // walk into a locked door or a secret wall while facing it
     const ax = Math.floor(P.x + Math.cos(P.a) * 0.62), ay = Math.floor(P.y + Math.sin(P.a) * 0.62), at = ay * W + ax, t = map[at];

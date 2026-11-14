@@ -369,3 +369,13 @@ floor; Star-Eater and Spire Titan moves eased.
 - Balance after infighting and the smarter bot: the average bot stopped dying on normal, so `dmgMul` went to 12.5% per
   zone and enemy counts grow a little faster. It still finishes normal without dying (damage per floor ~40% of max
   health in zone 10); hard is the mode that kills it. Weak bot: about one death at the floor 40 boss per climb.
+
+## Death recap, Titan phase two, difficulty re-measured (2026-11-15)
+- `hurtPlayer(n, fx, fy, by)` now records what hit you (`P.killer`; names in `FOE_NAME` / `foeName`), and the game-over
+  text reads "Killed by <what> on floor N · <zone>, floor k of 10 · kills · time into the climb".
+- Boss second phases: a `phase2` object in a `BOSS_MOVES` entry is merged into the boss once at half health, with
+  `phase2Msg`, an 18-shot burst in every direction and a screen flash. Only the Spire Titan has one (4-rocket volleys,
+  faster walk, bigger and more frequent rings).
+- Bot, all three difficulties after the last several rounds: normal, average bot: no deaths in the final zone over
+  four runs (damage per floor about half of max health); hard, average bot, full climb: 1 death, damage per floor in zone
+  10 about 80% of max health; easy, weak bot, floors 1-50: no deaths.
