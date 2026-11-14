@@ -45,6 +45,7 @@ SHOTS = {
     'blob':   ('f', ['manfa1', 'manfb1'], 0.30),       # the horror's cannon shots
     'bolt':   ('f', ['plssa0', 'plssb0'], 0.18),       # wizard's and the Archon's energy bolts
     'rocket': ('f', ['fatba1', 'fatbb1'], 0.24),       # the Titan
+    'boom':   ('f', ['mislb0', 'mislc0', 'misld0'], 1.0),   # explosion, played once; drawn at the blast's size
 }
 # Pickups lying on the floor: game item kind -> (set, frames, height in wall heights). Packed as window.ITEMS.
 ITEMS = {
@@ -88,7 +89,7 @@ HELD = {
     'ewand':   ('b', 'gwnda0', [(0.25, ['gwndb0']), (0.5, ['gwndc0']), (0.8, ['gwndd0'])]),
     'dshot':   ('f', 'sht2a0', [(0.08, ['sht2a0', 'sht2i0']), (0.16, ['sht2a0', 'sht2j0']), (0.28, ['sht2b0']), (0.40, ['sht2c0']),
                                 (0.52, ['sht2d0']), (0.64, ['sht2e0']), (0.76, ['sht2f0']), (0.88, ['sht2g0']), (1.0, ['sht2h0'])]),
-    'phoenix': ('b', 'phnxa0', [(0.2, ['phnxb0']), (0.5, ['phnxc0']), (0.85, ['phnxd0'])]),
+    'phoenix': ('b', 'phnxa0', [(0.35, ['phnxb0']), (0.85, ['phnxd0'])]),   # (frame C is a screen-filling white burst: left out)
     'claw':    ('b', 'blsra0', [(0.25, ['blsrc0']), (0.6, ['blsrd0']), (0.85, ['blsrc0'])]),
     'hstaff':  ('b', 'hroda0', [(0.3, ['hrode0']), (0.6, ['hrodf0']), (1.0, ['hrodg0'])]),
     'mace':    ('b', 'macea0', [(0.25, ['maceb0']), (0.5, ['macec0']), (0.75, ['maced0']), (1.0, ['macee0'])]),

@@ -73,7 +73,7 @@ function hurtMonster(m, dmg, knock = 0, stun = 0, fx = P.x, fy = P.y) {
   if (stun) m.stun = Math.max(m.stun || 0, stun * (m.boss ? 0.3 : 1));
   if (m.hp <= 0 && m.prop) {                                 // a pod bursts: hurts everything close, you included
     m.dead = true; m.dieT = 0; m.art = monArtKey(m); sfxAt('bigboom', m.x, m.y);
-    pshots.push({ kind: 'boom', x: m.x, y: m.y, vx: 0, vy: 0, life: 0.25, static: true, dead: false, size: 2.2 });
+    pshots.push({ kind: 'boom', x: m.x, y: m.y, vx: 0, vy: 0, life: 0.33, static: true, dead: false, size: 2.2 });
     const k0 = kills;
     for (const o of monsters) if (!o.dead && Math.hypot(o.x - m.x, o.y - m.y) < 2.2) hurtMonster(o, 70, 1.2, 0.3, m.x, m.y);
     if (kills - k0 >= 3) unlock('pod');
@@ -164,7 +164,7 @@ function pierceBeam(w) {
 }
 // The Big One: everything in sight within range takes the blast.
 function novaBlast(w) {
-  P.nova = 0.35; sfx('nova');
+  P.nova = 0.3; P.novaCol = '150,255,170'; sfx('nova');
   for (const m of monsters) {
     if (!m.dead && Math.hypot(m.x - P.x, m.y - P.y) < w.range && los(P.x, P.y, m.x, m.y)) hurtMonster(m, roll(w.dmg), w.knock, 0.5);
   }
@@ -196,7 +196,7 @@ function explode(s) {
   s.dead = true;
   if (s.blast > 0) {
     sfxAt(s.boom, s.x, s.y, s.blast < 1.2 ? 0.5 : 1);
-    pshots.push({ kind: 'boom', x: s.x, y: s.y, vx: 0, vy: 0, life: 0.25, static: true, dead: false, size: s.blast });
+    pshots.push({ kind: 'boom', x: s.x, y: s.y, vx: 0, vy: 0, life: 0.33, static: true, dead: false, size: s.blast });
     for (const m of monsters) {
       if (!m.dead && Math.hypot(m.x - s.x, m.y - s.y) < s.blast) hurtMonster(m, roll(s.blastDmg), s.knock, 0.2, s.x, s.y);
     }

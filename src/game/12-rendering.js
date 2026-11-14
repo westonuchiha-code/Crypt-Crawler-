@@ -8,12 +8,12 @@ function sh(c, f) {
   return (255 << 24) | (b << 16) | (g << 8) | r;
 }
 
-const skyCol = new Int32Array(RW);
+const skyCol = new Int32Array(480);            // one entry per buffer column, sized for the widest view (setView caps RW at 480)
 function renderFloorCeil(dirX, dirY, planeX, planeY) {
   const rdx0 = dirX - planeX, rdy0 = dirY - planeY, rdx1 = dirX + planeX, rdy1 = dirY + planeY;
   const pulse = 0.8 + 0.2 * Math.sin(performance.now() / 300);
   if (SKY_PX) for (let x = 0; x < RW; x++) {
-    const ang = P.a + Math.atan((2 * x / RW - 1) * FOV_PLANE);
+    const ang = P.a + Math.atan((2 * x / RW - 1) * fovPlane());
     skyCol[x] = ((((ang / (Math.PI * 2)) * SKY_W) % SKY_W + SKY_W) % SKY_W) | 0;
   }
   for (let y = 0; y < RH; y++) {
@@ -126,6 +126,11 @@ function renderSprites(dirX, dirY, planeX, planeY) {
     else list.push({ x: s.x, y: s.y, tex: SPR.fire, hurt: false, v: 0, scale: 0.5 });
   }
   for (const s of pshots) {
+    if (s.kind === 'boom' && SHOT_PX.boom) {                 // explosion: three frames over its life, sized to the blast
+      const ex = SHOT_PX.boom, f = Math.min(2, Math.floor((1 - s.life / 0.33) * 3)), fr = ex.frames[f < 0 ? 0 : f];
+      list.push({ x: s.x, y: s.y, tex: fr, hurt: false, mon: true, k: ex.k * (s.size || 1.6) * 0.42, lift: 0.5 * (1 - (s.size || 1.6) * 0.42) });   // lift keeps it centred at eye height at any size
+      continue;
+    }
     const art = s.kind !== 'boom' && SHOT_PX[s.spr];
     if (art) { if ((s.x - P.x) ** 2 + (s.y - P.y) ** 2 > 0.6) list.push({ x: s.x, y: s.y, tex: art.frames[Math.floor(s.t * 12) % art.frames.length], hurt: false, mon: true, k: art.k, lift: 0 }); continue; }
     const tex = s.kind === 'boom' ? SPR.fire : SPR.magic;
@@ -163,6 +168,11 @@ function renderSprites(dirX, dirY, planeX, planeY) {
 }
 
 // Tall monster sprite standing on the floor (floor line for distance ty is RH/2 + RH/(2*ty)).
+// A struck enemy flashes: its own colours pushed towards white, never recoloured.
+function hitTint(c, fog) {
+  const r = Math.min(255, (c & 255) + 90), g = Math.min(255, (c >> 8 & 255) + 70), b = Math.min(255, (c >> 16 & 255) + 70);
+  return sh((0xff000000 | r | g << 8 | b << 16) >>> 0, Math.min(1, fog * 1.25));
+}
 function drawMonsterSprite(s, tx, ty) {
   const t = s.tex, u = RH / ty * s.k, hpx = t.h * u, wpx = t.w * u;      // u: screen pixels per sprite pixel
   if (hpx < 1) return;
@@ -177,7 +187,7 @@ function drawMonsterSprite(s, tx, ty) {
       const tY = Math.floor((y - top) * t.h / hpx); if (tY < 0 || tY >= t.h) continue;
       const c = t[tY * t.w + tX];
       if ((c >>> 24) < 128) continue;
-      pix[y * RW + x] = s.hurt ? sh((c & 0xff00ffff) | 0x30 << 16, fog * 1.8) : sh(c, fog);   // hit: brighter, warmer flash
+      pix[y * RW + x] = s.hurt ? hitTint(c, fog) : sh(c, fog);
     }
   }
 }
@@ -200,7 +210,7 @@ function drawHitFlash() {
 // project a world point to screen-x (returns null if behind the camera)
 function projectX(x, y) {
   const dirX = Math.cos(P.a), dirY = Math.sin(P.a);
-  const planeX = -dirY * FOV_PLANE, planeY = dirX * FOV_PLANE;
+  const planeX = -dirY * fovPlane(), planeY = dirX * fovPlane();
   const inv = 1 / (planeX * dirY - dirX * planeY);
   const sx = x - P.x, sy = y - P.y;
   const tx = inv * (dirY * sx - dirX * sy);

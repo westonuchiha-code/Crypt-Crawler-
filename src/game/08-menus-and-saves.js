@@ -21,6 +21,7 @@ function showMenu(title, text, go, dead) {
   $('tag').style.display = title === 'CRYPT CRAWLER' ? '' : 'none';
   introEl.textContent = text; $('go').textContent = go;
   const b = loadBest();
+  $('hiscore').style.display = title === 'CRYPT CRAWLER' ? '' : 'none';
   $('hiscore').innerHTML = b.floor ? `TOP CLIMB &nbsp;<b>FLOOR ${b.floor}</b> &nbsp;·&nbsp; <b>${b.kills}</b> SLAIN` : 'TOP CLIMB &nbsp;<b>---</b>';
   const cp = (!dead && loadResume()) || loadCheckpoint(), canCont = cp && cp.floor > 1 && title !== 'SPIRE CONQUERED';
   if (canCont && !dead && title === 'CRYPT CRAWLER') $('go').textContent = `CONTINUE · FLOOR ${cp.floor}`;
@@ -83,7 +84,7 @@ function pauseGame() {
   running = false; paused = true; $('bossbar').style.display = 'none';
   $('title').textContent = 'PAUSED'; $('title').classList.remove('dead'); $('tag').style.display = 'none';
   introEl.textContent = level > 0 ? `Floor ${level} · ${ZONES[zoneOf(level)].name}` : 'The entrance';
-  $('go').textContent = 'RESUME'; $('newclimb').style.display = 'none'; $('quit').style.display = '';
+  $('go').textContent = 'RESUME'; $('hiscore').style.display = 'none'; $('newclimb').style.display = 'none'; $('quit').style.display = '';
   overlay.style.display = 'flex'; menuShownAt = performance.now(); menuI = 0; menuPaint();
   for (const k in keys) keys[k] = false;
   if (document.pointerLockElement) document.exitPointerLock();

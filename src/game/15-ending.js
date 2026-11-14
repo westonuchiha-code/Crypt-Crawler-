@@ -32,7 +32,7 @@ function buildEnding() {
     tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(rx, ry);
     return tx;
   };
-  const lit = (name, rx, ry, col, fb) => { const map = tex(name, rx, ry); return new THREE.MeshLambertMaterial(map ? { map, color: col } : { color: fb, flatShading: true }); };
+  const lit = (name, rx, ry, col, fb) => { const map = tex(name, rx, ry); return new THREE.MeshLambertMaterial(map ? { map, color: col } : { color: fb }); };
   const flat = (name, rx, ry, col, fb, side) => { const map = tex(name, rx, ry); return new THREE.MeshBasicMaterial(map ? { map, color: col, side } : { color: fb, side }); };
   const HAZE = 0xc8683c;
   scene.fog = new THREE.Fog(HAZE, 90, 620);
@@ -104,7 +104,7 @@ function buildEnding() {
   const lintel = new THREE.Mesh(new THREE.BoxGeometry(6.0, 1.0, 0.9), frameM); lintel.position.set(0, 7.1, DOOR_Z + 0.2); scene.add(lintel);
 
   // the climber (only in the wide shot)
-  const cloth = c => new THREE.MeshLambertMaterial({ color: c, emissive: new THREE.Color(c).multiplyScalar(0.4), flatShading: true });
+  const cloth = c => new THREE.MeshLambertMaterial({ color: c, emissive: new THREE.Color(c).multiplyScalar(0.4) });
   const hero = new THREE.Group(); hero.position.set(0, 0, HERO_Z);  scene.add(hero);
   const part = (w, h, d, c, x, y, z, to) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), cloth(c)); m.position.set(x, y, z); (to || hero).add(m); return m; };
   part(1.2, 1.8, 0.7, 0x7a8a9a, 0, 2.3, 0); part(0.9, 0.9, 0.9, 0xc8a080, 0, 3.6, 0); part(0.95, 0.35, 0.95, 0x2a2018, 0, 4.0, 0);

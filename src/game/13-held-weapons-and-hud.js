@@ -9,7 +9,7 @@
 //    bottom of the screen, negative y = up. drawHeldWeapon() translates and adds walk bob.
 const OUT = '#1e140c';
 const SK = '#d9a273', SKD = '#a8693f', SKL = '#f2c597', SLV = '#4a3626';
-const RIGHT_X = RW / 2 + 62;               // screen x of right-hand weapons (wand, lightning)
+let RIGHT_X = RW / 2 + 62;                 // screen x of right-hand weapons (wand, lightning)
 
 function poly(pts, fill, line = OUT) {
   bctx.beginPath(); bctx.moveTo(pts[0], pts[1]);
@@ -70,7 +70,7 @@ function artFrame(w) {
   for (const [u, f] of q.seq) if (pr < u) return f;
   return q.idle;
 }
-function artTip(w) { const i = artFrame(w), t = ASSETS[w].tips[i]; return [t[0] * 2, RH - 180 + t[1] * 2]; }
+function artTip(w) { const i = artFrame(w), t = ASSETS[w].tips[i]; return [(RW - 320) / 2 + t[0] * 2, RH - 180 + t[1] * 2]; }
 function drawArtWeapon(w) {
   const i = artFrame(w), q = ART[w], a = P.anim, [tx, ty] = artTip(w);
   bctx.imageSmoothingEnabled = false;
@@ -79,7 +79,7 @@ function drawArtWeapon(w) {
     bctx.fillStyle = 'rgba(255,150,40,0.55)'; bctx.beginPath(); bctx.arc(tx, ty + 6, gl, 0, Math.PI * 2); bctx.fill();
     bctx.fillStyle = 'rgba(255,230,120,0.7)'; bctx.beginPath(); bctx.arc(tx, ty + 6, gl * 0.5, 0, Math.PI * 2); bctx.fill();
   }
-  bctx.drawImage(artImgs[w][i], 0, RH - 180, RW, 180);
+  bctx.drawImage(artImgs[w][i], (RW - 320) / 2, RH - 180, 320, 180);   // the art is 320 wide: keep it centred, never stretched
 }
 
 // Pack weapons (window.HELD, from tools/enemy_cast.py): frames sit at their original 320x200 screen positions,
@@ -92,7 +92,7 @@ function drawPackWeapon(w) {
   let names = [Hd.idle];
   if (P.anim > 0.001) for (const [u, n] of Hd.seq) if (pr < u) { names = n; break; }
   bctx.imageSmoothingEnabled = false;
-  bctx.save(); bctx.translate(RW / 2, RH); bctx.scale(Hd.scale, Hd.scale); bctx.translate(-RW / 2, -RH + Hd.shift);
+  bctx.save(); bctx.translate(RW / 2, RH); bctx.scale(Hd.scale, Hd.scale); bctx.translate(-160, -RH + Hd.shift);   // frames sit at 320-wide positions
   for (const n of names) bctx.drawImage(heldImgs[w][n], Hd.frames[n][1], Hd.frames[n][2]);
   bctx.restore();
 }
@@ -120,7 +120,7 @@ function drawOverlays() {
     bctx.fillStyle = `rgba(200,0,0,${Math.min(0.45, P.hurt * 1.5)})`;
     bctx.fillRect(0, 0, RW, RH);
   }
-  if (P.nova > 0) { bctx.fillStyle = `rgba(150,255,170,${Math.min(0.7, P.nova * 2)})`; bctx.fillRect(0, 0, RW, RH); }   // the Big One's flash
+  if (P.nova > 0) { bctx.fillStyle = `rgba(${P.novaCol || '150,255,170'},${Math.min(0.38, P.nova * 1.3)})`; bctx.fillRect(0, 0, RW, RH); }   // a brief flash: the Big One (green) or a boss changing phase (pale)
   if (P.hitT > 0) {                                          // red wedge on a ring round the crosshair, pointing at whatever hit you
     const rel = P.hitA - P.a - Math.PI / 2, cx = RW / 2, cy = RH / 2, R = 62;
     bctx.save(); bctx.translate(cx + Math.cos(rel) * R, cy + Math.sin(rel) * R * 0.8); bctx.rotate(rel);
@@ -134,7 +134,7 @@ function drawOverlays() {
   if (mapOn && level > 0) {
     const full = Number(mapOn) === 2, C = PAL();
     const cs = full ? Math.max(2, Math.floor(Math.min((RW - 16) / W, (RH - 34) / H))) : 2;
-    const ox = full ? Math.floor((RW - W * cs) / 2) : 4, oy = full ? Math.floor((RH - 12 - H * cs) / 2) + 6 : 4;   // room for the HUD line above and the legend below
+    const ox = full ? Math.floor((RW - W * cs) / 2) : 4, oy = full ? Math.floor((RH - 12 - H * cs) / 2) + 6 : 15;   // room for the HUD line above and the legend below
     if (full) { bctx.fillStyle = 'rgba(0,0,0,0.72)'; bctx.fillRect(0, 0, RW, RH); }
     const dot = (x, y, col, big) => { bctx.fillStyle = col; const k = big && full ? 1 : 0; bctx.fillRect(ox + Math.floor(x) * cs - k, oy + Math.floor(y) * cs - k, cs + 2 * k, cs + 2 * k); };
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -164,7 +164,7 @@ function drawOverlays() {
 
 function render() {
   const dirX = Math.cos(P.a), dirY = Math.sin(P.a);
-  const planeX = -dirY * FOV_PLANE, planeY = dirX * FOV_PLANE;
+  const planeX = -dirY * fovPlane(), planeY = dirX * fovPlane();
   renderFloorCeil(dirX, dirY, planeX, planeY);
   renderWalls(dirX, dirY, planeX, planeY);
   renderSprites(dirX, dirY, planeX, planeY);
@@ -174,7 +174,7 @@ function render() {
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const s = Math.min(canvas.width / RW, canvas.height / RH);
-  const dw = RW * s, dh = RH * s;
+  const dw = RW * s, dh = RH * s;                            // setView() keeps the shapes matched, so this fills the window
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(buf, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
 }
@@ -184,9 +184,12 @@ function resize() {
   const s = (window.RQPad && RQPad.stage) || { x: 0, y: 0, width: innerWidth, height: innerHeight };
   canvas.width = Math.max(1, Math.floor(s.width));
   canvas.height = Math.max(1, Math.floor(s.height));
-  const hud = document.getElementById('hud');
-  hud.style.left = (s.x + 12) + 'px';
-  hud.style.right = (innerWidth - s.x - s.width + 12) + 'px';
+  setView(canvas.width / canvas.height); RIGHT_X = RW / 2 + 62;
+  const L = s.x + 12 + 'px', R = (innerWidth - s.x - s.width + 12) + 'px', Tp = s.y + 10 + 'px', B = (innerHeight - s.y - s.height + 10) + 'px';
+  Object.assign($('hud').style, { left: L, top: Tp });
+  Object.assign($('hudr').style, { right: R, top: Tp });
+  Object.assign($('hudb').style, { left: L, bottom: B });
+  Object.assign($('hudw').style, { right: R, bottom: B });
   Object.assign($('bossbar').style, { left: s.x + 'px', right: (innerWidth - s.x - s.width) + 'px', top: (s.y + 66) + 'px' });
   const ov = document.getElementById('overlay');   // title screen sits in the same free area
   ov.style.left = s.x + 'px'; ov.style.right = (innerWidth - s.x - s.width) + 'px';

@@ -1,5 +1,6 @@
 (() => {
-const RW = 320, RH = 200;                     // internal low-res buffer, scaled up to the window
+const RH = 200;                               // the view is drawn into a low-res buffer RW x 200, then scaled up
+let RW = 320;                                 // 320 wide for a 16:10 window; wider windows get a wider buffer (setView), not black bars
 let FOV_PLANE = 0.66;                         // tan(half the horizontal field of view); set from the settings (opts.fov, degrees)
 const STAIRS = 9, DOOR = 4, LOCKED = 5, SECRET = 6, DARTS = 7, FINAL = 100;   // map tiles: 0 floor, 1-3 walls, 4 door, 5 locked door, 6 secret wall, 7 dart wall
 // ---- the climb: 100 floors in 10 zones of 10; each zone ends with its boss on floor 10, 20 ... 100 ----
@@ -78,9 +79,15 @@ const ctx = canvas.getContext('2d');
 const buf = document.createElement('canvas');
 buf.width = RW; buf.height = RH;
 const bctx = buf.getContext('2d');
-const img = bctx.createImageData(RW, RH);
-const pix = new Uint32Array(img.data.buffer);
-const zBuf = new Float32Array(RW);
+let img = bctx.createImageData(RW, RH), pix = new Uint32Array(img.data.buffer), zBuf = new Float32Array(RW);
+// Match the buffer's width to the window's shape (between 4:3-ish and 21:9), keeping its height: more is seen to the
+// sides on a wide screen, nothing is stretched. fovPlane() widens the field of view to go with it.
+function setView(aspect) {
+  const w = Math.max(280, Math.min(480, Math.round(RH * aspect / 2) * 2));
+  if (w === RW) return;
+  RW = w; buf.width = RW; img = bctx.createImageData(RW, RH); pix = new Uint32Array(img.data.buffer); zBuf = new Float32Array(RW);
+}
+const fovPlane = () => FOV_PLANE * RW / 320;
 
 const $ = id => document.getElementById(id);
 const overlay = $('overlay'), msgEl = $('msg'), hpfill = $('hpfill'), stats = $('stats'), introEl = $('intro');

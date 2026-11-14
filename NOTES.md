@@ -20,6 +20,7 @@ measurements behind each change, is in docs/notes-history.md.
 | `python3 tools/live.py` | Builds, fires every weapon on three floors, then about 40 checks across every system, including every menu by keyboard alone and by controller alone. Must end `errors: none`. |
 | `python3 tools/bot.py [runs] [first] [average\|weak] [last] [easy\|normal\|hard]` | A bot plays the real game logic. Per zone: deaths, damage taken per floor, stalls; per weapon: real damage per shot and per second. |
 | `python3 tools/levels.py [n]` | Generates floors 1-100 n times each and proves every one can be finished: key, stairs, loot and enemies reachable. |
+| `python3 tools/tour.py <folder>` | About 74 screenshots of the whole game (bot-played fights, bosses, cutscenes, staged set pieces, every weapon, menus). For looking at, not pass/fail. |
 | `python3 tools/cutscenes.py [sheet.png]` | Intro and ending end to end with WebGL, and their skip rules. |
 | `python3 tools/balance.py` | Static table: enemy health, ammo margin, hits to die, healing per zone. |
 - The bot's results swing between runs; use two or three runs and compare zones, not absolute numbers.
@@ -78,6 +79,20 @@ measurements behind each change, is in docs/notes-history.md.
   The user was emphatic (2026-11-15): this is a PC game; nothing may depend on touch, and the title screen must look
   like a normal title screen with nothing overlapping.
 - Input: keyboard and mouse, any standard controller (`pollGamepad`), and the RQPad on-screen pad for phone testing.
+
+## Screenshot review of 2026-11-15 (what tools/tour.py turned up, all fixed)
+- The view was a fixed 320x200 buffer letterboxed into the window: black bars at the sides on 16:9. Now `setView()`
+  sizes the buffer's width to the window (280-480 wide, height 200) and `fovPlane()` widens the view to match.
+  Anything that assumed 320 wide was corrected (held weapons, the fist art, the sky column table).
+- The single HUD text line wrapped over the minimap once armour and timers were showing. The HUD is now four corners:
+  health and armour top left, floor and kills top right, key and timers bottom left, weapon and ammo bottom right.
+- Explosions were one flat orange disc scaled to the blast; they are now three Freedoom explosion frames (`SHOTS.boom`).
+- The phoenix rod's firing frame was a white burst over a third of the screen: that frame is no longer used.
+- The Big One's and the boss-phase flash washed the whole screen green for too long: now brief, lighter, pale for bosses.
+- A struck enemy was recoloured (neon yellow or blue); `hitTint` now only pushes its own colours towards white.
+- Menu subtitles sat under the title's glow; the high score showed on the pause menu. Fixed.
+- three.js warned about `flatShading` on Lambert materials: removed.
+- Not changed: dart-wall projectiles reuse the blue "spit" sprite and do not look like darts.
 
 ## Known gaps
 - Never heard or hand-played by the person who wrote most of it: sound choices, music choices, weapon feel, boss feel,

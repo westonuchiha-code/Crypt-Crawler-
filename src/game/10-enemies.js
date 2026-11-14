@@ -19,7 +19,7 @@ function bossMoves(m, dt, d) {
   if (m.phase2 && !m.p2 && m.hp < m.maxHp / 2) {              // second phase: new moves, announced with a blast in every direction
     m.p2 = true; Object.assign(m, m.phase2); m.ringT = m.ring ? m.ring[1] : 9; m.stun = 0;
     for (let i = 0; i < 18; i++) spawnShot(m, 0, 0.5, i / 18 * Math.PI * 2);
-    P.nova = 0.3; msnd(m, 'see', 1.2); showMsg(m.phase2Msg || `${m.name} is enraged`);
+    P.nova = 0.22; P.novaCol = '255,220,200'; msnd(m, 'see', 1.2); showMsg(m.phase2Msg || `${m.name} is enraged`);
   }
   if (m.ring && (m.ringT -= dt) <= 0) {
     m.ringT = m.ring[1] * rage; m.atk = ATK_T; msnd(m, 'shot') || sfxAt('eshot', m.x, m.y);

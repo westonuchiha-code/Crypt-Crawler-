@@ -21,8 +21,13 @@
   #endroll{-webkit-mask-image:linear-gradient(transparent,#000 18%,#000 82%,transparent);mask-image:linear-gradient(transparent,#000 18%,#000 82%,transparent)}
   #endin{color:#f2e6c0;text-shadow:0 2px 4px #000,0 0 8px #000;letter-spacing:.12em;line-height:1.9;will-change:transform}
   #endin b{display:block;color:#ffb060;font-size:.8em;letter-spacing:4px;margin-top:1.6em}
-  #hud{position:fixed;left:12px;top:12px;right:90px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;pointer-events:none;text-shadow:0 1px 2px #000;font-size:14px}
-  #hpbar{width:180px;height:12px;border:1px solid #777;background:#300}
+  /* HUD: health top left, floor top right, timers bottom left, weapon and ammo bottom right */
+  #hud,.hudx{position:fixed;pointer-events:none;text-shadow:0 1px 2px #000,0 0 4px #000;font-size:clamp(11px,1.5vw,15px);letter-spacing:1px;white-space:nowrap}
+  #hud{left:12px;top:10px;display:flex;align-items:center;gap:10px}
+  #hudw{font-size:clamp(13px,1.9vw,19px);color:#ffe9a8}
+  #hudb{color:#ffd23a}
+  body.intro .hudx{display:none}
+  #hpbar{width:clamp(90px,16vw,180px);height:12px;border:1px solid #777;background:#300}
   #hpfill{height:100%;width:100%;background:#c93030;transition:width .15s}
   /* boss health bar: top centre of the view, under the message line, while a boss that has seen you is alive */
   #bossbar{position:fixed;left:0;right:0;top:66px;display:none;flex-direction:column;align-items:center;gap:3px;pointer-events:none;text-shadow:0 1px 2px #000}
@@ -35,7 +40,7 @@
   #overlay{overflow-y:auto;position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:12px;text-align:center;padding:16px;box-sizing:border-box;
     background:radial-gradient(ellipse at 50% 40%,rgba(60,0,0,.55),rgba(0,0,0,.92) 70%);font-family:ui-monospace,'Courier New',monospace;text-transform:uppercase}
   #overlay::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px)}   /* CRT scanlines */
-  #overlay h1{margin:0;font:900 clamp(34px,8.5vw,84px)/0.9 Impact,'Arial Black','Roboto Condensed',sans-serif;letter-spacing:2px;
+  #overlay h1{margin:0 0 16px;font:900 clamp(34px,8.5vw,84px)/0.9 Impact,'Arial Black','Roboto Condensed',sans-serif;letter-spacing:2px;
     transform:perspective(300px) rotateX(14deg) scaleY(1.25);
     background:linear-gradient(#fff6a8 0%,#ffd23a 22%,#ff7a12 48%,#c41a08 72%,#5a0600 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
     filter:drop-shadow(0 2px 0 #300) drop-shadow(0 4px 0 #200) drop-shadow(0 6px 0 #100) drop-shadow(0 0 18px rgba(255,80,0,.55))}
@@ -92,6 +97,7 @@
 <div id="msg"></div>
 <div id="bossbar"><div id="bossname"></div><div id="bosstrack"><div id="bossfill"></div></div></div>
 <div id="hud"><div id="hpbar"><div id="hpfill"></div></div><div id="stats"></div></div>
+<div id="hudr" class="hudx"></div><div id="hudb" class="hudx"></div><div id="hudw" class="hudx"></div>
 <div id="overlay">
   <h1 id="title">CRYPT CRAWLER</h1>
   <div id="tag">— climb the spire —</div>

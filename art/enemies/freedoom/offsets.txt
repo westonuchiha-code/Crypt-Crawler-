@@ -278,6 +278,9 @@ plssa0 9 12
 plssb0 9 12
 fatba1 11 16
 fatbb1 11 16
+mislb0 39 42
+mislc0 38 46
+misld0 45 47
 fcana0 12 57
 fcanb0 12 57
 fcanc0 12 57

@@ -51,6 +51,7 @@ python3 tools/live.py            # must say: errors: none
 python3 tools/bot.py 1           # a full bot climb, after anything that touches balance, enemies or level generation
 python3 tools/cutscenes.py       # intro and ending end to end, after touching the cutscenes or the menu flow
 python3 tools/levels.py          # every floor can be finished, after touching level generation
+python3 tools/tour.py <folder>   # ~74 screenshots of everything; look through them after any visual change
 ```
 - **Test setup:** the tools use Playwright with /usr/bin/google-chrome and block three.min.js to skip the intro.
   pack_assets.py needs Pillow, numpy and scipy; pack_sounds.py needs ffmpeg.

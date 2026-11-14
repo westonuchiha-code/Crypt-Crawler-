@@ -109,8 +109,10 @@ function update(dt) {
   const ammoTxt = wdef.ammo ? P.ammo[P.weapon] : '∞';
   const b = monsters.find(m => m.boss && !m.dead);
   const floorTxt = level === 0 ? 'ENTRANCE' : `FLOOR ${level} · ${ZONES[zoneOf(level)].name.replace('THE ', '')}`;
-  const extra = (P.keys > 0 ? ' · KEY' : '') + (P.armor > 0 ? ` · ARMOUR ${P.armor}` : '') + (P.fury > 0 ? ` · FURY ${Math.ceil(P.fury)}s` : '') + (P.ward > 0 ? ` · WARD ${Math.ceil(P.ward)}s` : '');
-  stats.textContent = `HP ${Math.ceil(P.hp)}/${P.maxHp}${extra} · ${floorTxt} · ${wdef.name} ${ammoTxt} · SLAIN ${kills}`;
+  stats.textContent = `${Math.ceil(P.hp)} / ${P.maxHp}${P.armor > 0 ? `   ARMOUR ${P.armor}` : ''}`;
+  $('hudr').textContent = `${floorTxt} · SLAIN ${kills}`;
+  $('hudb').textContent = [P.keys > 0 ? 'KEY' : '', P.fury > 0 ? `FURY ${Math.ceil(P.fury)}` : '', P.ward > 0 ? `WARD ${Math.ceil(P.ward)}` : ''].filter(Boolean).join('   ');
+  $('hudw').textContent = `${wdef.name}  ${ammoTxt}`;
   const bar = $('bossbar'), showBar = b && b.woke && running;
   bar.style.display = showBar ? 'flex' : 'none';
   if (showBar) { $('bossname').textContent = b.name; $('bossfill').style.width = Math.max(0, b.hp / b.maxHp * 100) + '%'; }

@@ -235,7 +235,6 @@ gwndc0 -139 -79
 gwndd0 -139 -71
 phnxa0 -92 -86
 phnxb0 -92 -86
-phnxc0 -61 -76
 phnxd0 -92 -90
 blsra0 -103 -84
 blsrc0 -97 -84

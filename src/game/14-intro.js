@@ -31,7 +31,7 @@ function buildIntro() {
     tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(rx, ry);
     return tx;
   };
-  const texMat = (name, rx, ry, col, fb) => { const map = tileTex(name, rx, ry); return new THREE.MeshLambertMaterial(map ? { map, color: col } : { color: fb, flatShading: true }); };
+  const texMat = (name, rx, ry, col, fb) => { const map = tileTex(name, rx, ry); return new THREE.MeshLambertMaterial(map ? { map, color: col } : { color: fb }); };
   scene.background = new THREE.Color(SKY);
   scene.fog = new THREE.Fog(SKY, 150, 480);
   const cam = new THREE.PerspectiveCamera(55, 320 / 180, 0.5, 1200);
@@ -94,7 +94,7 @@ function buildIntro() {
   step.position.set(0, 0.4, 2.5); door.add(step);
 
   // clouds
-  const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
+  const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
   for (let i = 0; i < 14; i++) {
     const g = new THREE.Group();
     for (let k = 0; k < 4; k++) {
@@ -116,7 +116,7 @@ function buildIntro() {
   }
 
   // ---- NPCs: blocky placeholder figures (swap for real models later) ----
-  const cloth = c => new THREE.MeshLambertMaterial({ color: c, flatShading: true });
+  const cloth = c => new THREE.MeshLambertMaterial({ color: c });
   const makeHuman = (clothColor, x, z) => {
     const g = new THREE.Group();
     g.position.set(x, 0, z);

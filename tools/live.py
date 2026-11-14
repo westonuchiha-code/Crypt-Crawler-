@@ -33,7 +33,7 @@ with sync_playwright() as p:
     ok('spikes hurt', ev("(function(){ const t = traps[0]; P.x = t.x + .5; P.y = t.y + .5; t.ph = -performance.now() / 1000 + 0.1; P.hp = P.maxHp; trapHurtT = 0; update(1 / 30); return P.hp < P.maxHp; })()"))
     ok('dart wall fires and the dart hits', ev("(function(){ const d = darts[0]; shots = []; P.x = d.x + .5 + d.dx * 2.5; P.y = d.y + .5 + d.dy * 2.5; P.hp = P.maxHp; d.t = 0; for (let i = 0; i < 40; i++) update(1 / 30); return P.hp < P.maxHp; })()"))
     face = "(function(t){ const c = map.indexOf(t), x = c % W, y = (c / W) | 0; for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) if (!solid(x + .5 + dx, y + .5 + dy)) { P.x = x + .5 + dx * 0.9; P.y = y + .5 + dy * 0.9; P.a = Math.atan2(-dy, -dx); P.vx = P.vy = 0; return; } })"
-    ev(face + "(LOCKED)"); ev("P.keys = 0; update(1 / 30)")
+    ev("P.keys = 0; items = items.filter(i => i.kind !== 'key'); " + face + "(LOCKED)"); ev("P.keys = 0; update(1 / 30)")   # (no key in reach while the page's own loop runs)
     ok('locked door stays shut without the key', ev("map.indexOf(LOCKED) >= 0"))
     ev("pickupItem('key'); update(1 / 30)")
     ok('locked door opens with the key', ev("map.indexOf(LOCKED) < 0 && P.keys === 0"))
