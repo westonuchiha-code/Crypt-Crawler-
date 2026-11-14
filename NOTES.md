@@ -285,3 +285,13 @@ floor; Star-Eater and Spire Titan moves eased.
   credits share one row (`#links`).
 - Bot usage: `python3 tools/bot.py [runs] [first] [average|weak] [last] [easy|normal|hard]`. If the page pauses itself the
   bot resumes; before that fix every zone start showed one false death.
+
+## Controls panel, hit marker, Star-Eater (2026-11-14, last round)
+- Key rebinding: `K` holds the live bindings (`KEY_DEFAULTS` + `opts.keys`), edited in the "controls" panel
+  (`showKeys`, `drawKeys`, `keyWait`). Binding a key already in use swaps the two actions. Esc, digits and the up/down
+  arrows are fixed. New: `K.next` (Q) and the mouse wheel cycle weapons. The help line is built by `drawHelp()`.
+  The test pad fires through `padFire` (RQPad button A), so rebinding Fire does not break it.
+- Hit marker: `hurtPlayer(n, fx, fy)` records where a hit came from; `drawOverlays` draws a red wedge on a ring round
+  the crosshair for 0.7 s (top = ahead, bottom = behind). Spike traps pass no source, so they show none.
+- Star-Eater (floor 90): reappears 3.2 cells away (was 2.6) and cannot strike for 1.6 s after a blink.
+  Bot, zones 9-10, three runs each: normal 1 death at floor 90 and 3 at floor 100; hard 4 and 14.
