@@ -81,5 +81,6 @@ python3 tools/live.py            # must say: errors: none
    and names to suit the new sprites, boss fights, and nothing new unlocks after floor 9.
 4. **Before release:**
    - set RQPad `onlyOnTouch: true`
-   - confirm the two unknown texture sources in CREDITS.md (the in-game credits page lists everything else)
+   - **remind the user:** the wall/floor/door textures are from a pack they bought on itch.io; they will look up its
+     name and licence later (steps in CREDITS.md, "Reminder"). Everything else is on the in-game credits page.
    - consider bundling three.js so the intro doesn't depend on the CDN
