@@ -75,5 +75,4 @@ measurements behind each change, is in docs/notes-history.md.
 - Never heard or hand-played by the person who wrote most of it: sound choices, music choices, weapon feel, boss feel,
   controller feel are all unverified by a human.
 - No desktop installer has been built or tried on Windows or macOS; no Steam features.
-- Two texture sources still need their licence confirmed (CREDITS.md, "Reminder").
 - Normal difficulty costs the average bot no deaths; whether that is right for people is undecided.

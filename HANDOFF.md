@@ -87,7 +87,7 @@ The 2026-11-14/15 sessions took the game from a prototype to feature-complete (s
    swap sounds or music tracks, and to retune weapons, bosses and normal difficulty.
 2. **Decide how hard normal should be.** The average bot finishes it without dying.
 3. **Before release:**
-   - **remind the user:** the wall/floor/door textures are from a pack they bought on itch.io; they will look up its
-     name and licence later (steps in CREDITS.md, "Reminder"). Everything else is on the in-game credits page.
+   - texture packs: settled. The user bought them and holds the receipts; do not bring up their licences again
+     (CREDITS.md, "Purchased packs").
    - build and try the desktop installers per platform (desktop/README.md); wire up Steam if wanted
    - the on-screen pad is already left out of `tools/build.py --release`

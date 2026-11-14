@@ -13,31 +13,15 @@ keep the two in step. "Required" means the licence obliges us to ship the notice
 | Intro and ending scenes | three.js r128 | three.js authors | MIT | **Yes**: ship its licence text |
 | Guns, staffs, wands | Freedoom and Blasphemer weapon sprites | same projects | BSD 3-clause | **Yes**: covered by the same two notices |
 | Fist | FPS Weapon Sprites | Ragnar Random (from Quaternius models) | CC0 | No (credited anyway) |
-| Walls, floors, doors | "Dungeon_Map.png" and "Doors_Map.png" tile sheets | paid itch.io pack (name to look up) | to check | **To confirm before release** |
-| Sewer brick wall | Modular PSX Sewer Kit (comp3interactive.itch.io/modular-psx-sewer-kit) | Comp-3 Interactive | **not stated on its page** (see note) | **Ask the author before release** |
+| Walls, floors, doors | "Dungeon_Map.png" and "Doors_Map.png" tile sheets | purchased asset pack (the developer holds the receipt) | purchased | No |
+| Sewer brick wall | Modular PSX Sewer Kit (comp3interactive.itch.io/modular-psx-sewer-kit) | Comp-3 Interactive | purchased (the developer holds the receipt); the pack asks for no credit | No (its itch.io page is credited anyway) |
 
 No longer used in the game (kept in art/ for reference): the photo pistol and shotgun, and the Fantasy FPS Hands wand and
 lightning hands. Not shipped: art/anarch (CC0, unused) and rqpad.js (the developer's own on-screen pad, test scaffolding only).
 Individual Freedoom and Blasphemer artists are listed in art/enemies/*/CREDITS*.
 
-## Reminder for the developer (noted 2026-11-14)
-The wall, floor and door textures come from a pack bought on itch.io. Credit is probably not required, but before release:
-1. Find the pack's page in your itch.io library and note its name and author here.
-2. Read its licence: is commercial use allowed, is credit required, and may the art be modified (the zone tiles are
-   recoloured and repainted from it)?
-3. Update the "Walls, floors and doors" lines in the in-game credits page (index.html, `#credits`) to match.
-
-### Modular PSX Sewer Kit: what is known (looked up 2026-11-15)
-- Author: Comp-3 Interactive. Paid pack (minimum 5.99 GBP); the developer has bought it.
-- Its itch.io page has no licence section; commenters have asked for one, and a question about commercial use on the
-  demo page had no visible reply.
-- For a sibling pack (Modular PSX Architecture Kit) the same author wrote in the comments: CC0, do what you want apart
-  from reselling or reskin-reselling, no attribution required, fine for commercial projects. Nothing confirms the Sewer
-  Kit has the same terms, though it is likely.
-- This was found by web search; the pack's page itself could not be opened from the build machine.
-- The developer's purchase is confirmed (itch.io shows "You own this asset pack", bought for 5.99 GBP).
-- The downloaded zip was checked on 2026-11-15: 107 files (textures, meshes, a Unity package, Blender and Photoshop
-  sources) and **no licence, readme or terms file** anywhere in it, including inside the Unity package.
-- **To settle it:** ask Comp-3 Interactive in a comment on the pack's page whether it may be used, modified, in a
-  commercial game, and whether credit is wanted. The game credits them by name in the meantime.
-- Still unidentified: the pack that "Dungeon_Map.png" and "Doors_Map.png" came from (most walls, floors and doors).
+## Purchased packs: settled by the developer on 2026-11-15
+The developer bought the texture packs, holds the receipts, and has decided: no credit is owed where a pack does not ask
+for one, and no further licence checks are wanted. The Modular PSX Sewer Kit's itch.io page is credited in game as a
+courtesy. Do not raise this again unless the developer asks.
+(For the record: the sewer kit's zip contains no licence or readme file, and its page states no licence.)
