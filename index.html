@@ -234,7 +234,7 @@ const ARMOUR_MAX = 100, ARMOUR_PICKUP = 50, ARMOUR_SOAK = 0.5;      // armour ta
 const FURY_TIME = 20, WARD_TIME = 8;                                // double damage / cannot be hurt, in seconds
 let floorAmmo = 1;                                                  // this floor's ammo multiplier, set in generate()
 const ammoMul = () => floorAmmo;
-const dmgMul = lv => 1 + 0.12 * zoneOf(lv);
+const dmgMul = lv => 1 + 0.10 * zoneOf(lv);
 // Damage is [min, max] per hit, before the zone bonus (wpnMul). knock = shove back (cells), stun = seconds the enemy
 // cannot move or attack; bosses take 20% knock and 30% stun. One job each:
 //  fist      always there: weak, but shoves and staggers so you can make space
@@ -606,12 +606,12 @@ const ROSTERS = [
   [['slime', 4], ['rat', 4], ['ghoul', 2], ['imp', 2]],                               // sewers
   [['skel', 4], ['ghoul', 3], ['flame', 2], ['angel', 1]],                            // catacombs
   [['knight', 4], ['skel', 2], ['imp', 2], ['angel', 1]],                             // castle halls
-  [['golem', 3], ['flame', 4], ['imp', 2], ['knight', 1]],                            // foundry
-  [['harpy', 5], ['angel', 2], ['flame', 2]],                                         // sky tower
+  [['golem', 2], ['flame', 4], ['imp', 2], ['knight', 2]],                            // foundry
+  [['harpy', 4], ['angel', 3], ['flame', 2], ['knight', 1]],                          // sky tower
   [['harpy', 4], ['angel', 3], ['golem', 1], ['eye', 1]],                             // upper air
   [['alien', 4], ['eye', 3], ['harpy', 1]],                                           // the void
-  [['horror', 3], ['eye', 3], ['alien', 3]],                                          // alien spire
-  [['horror', 3], ['alien', 2], ['eye', 2], ['golem', 1], ['angel', 1]]               // the other world
+  [['horror', 2], ['eye', 3], ['alien', 3], ['harpy', 2]],                            // alien spire
+  [['horror', 2], ['alien', 2], ['eye', 2], ['golem', 1], ['angel', 1], ['slime', 2], ['skel', 2]]   // the other world
 ];
 // Scenery per zone: [standing props (block movement), props hung from the ceiling (roofed zones only)].
 const ZONE_PROPS = [
@@ -640,10 +640,10 @@ const KIND = {
   angel:  { hp: 95,  speed: 0.9, dmg: 6,  ranged: true, shot: 'bolt', burst: 3, keep: 4.5, weave: 0.4, fly: true },   // wizard: fan of three
   slime:  { hp: 70,  speed: 1.0, dmg: 6,  lunge: true },                                              // red beast: pounces
   knight: { hp: 120, speed: 0.9, dmg: 9,  heavy: true },                                              // undead warrior: armoured
-  golem:  { hp: 170, speed: 0.65, dmg: 11, ranged: true, shot: 'heavy', heavy: true },                // steel brute: slow, hits hard both ways
+  golem:  { hp: 170, speed: 0.65, dmg: 9,  ranged: true, shot: 'heavy', heavy: true },                // steel brute: slow, hits hard both ways
   harpy:  { hp: 40,  speed: 1.7, dmg: 5,  lunge: true, weave: 0.7, fly: true },                       // gargoyle: swoops
   alien:  { hp: 65,  speed: 1.1, dmg: 6,  ranged: true, shot: 'spit' },
-  eye:    { hp: 85,  speed: 0.7, dmg: 7,  ranged: true, shot: 'spit', keep: 3.5, weave: 0.3, fly: true },
+  eye:    { hp: 85,  speed: 0.7, dmg: 6,  ranged: true, shot: 'spit', keep: 3.5, weave: 0.3, fly: true },
   horror: { hp: 170, speed: 0.6, dmg: 9,  ranged: true, shot: 'blob', burst: 2, keep: 4, heavy: true },      // twin cannons
   pod:    { hp: 15,  speed: 0, dmg: 0, prop: true }                                                   // explosive pod: not an enemy, bursts when shot
 };
@@ -659,8 +659,8 @@ const BOSS_MOVES = [
   { shot: 'fire',   summon: ['flame', 4, 7], fly: true, weave: 0.4 },       // the Storm Herald spits out flames
   { shot: 'heavy',  burst: 2, ring: [8, 7] },                               // the Skywyrm
   { shot: 'bolt',   stream: [7, 0.18] },                                    // the Void Archon: a hose of bolts
-  { shot: 'fire',   blink: [6], ring: [12, 6] },                            // the Star-Eater steps through space
-  { shot: 'rocket', burst: 3, summon: ['horror', 2, 14], ring: [14, 8] }    // the Spire Titan: rockets, rings and reinforcements
+  { shot: 'fire',   blink: [8], ring: [10, 7] },                            // the Star-Eater steps through space
+  { shot: 'rocket', burst: 3, summon: ['horror', 1, 20], ring: [10, 9] }    // the Spire Titan: rockets, rings and reinforcements
 ];
 const SPR_FALLBACK = { slime: 'ghoul', knight: 'skel', golem: 'ghoul', harpy: 'imp', alien: 'imp', eye: 'flame', horror: 'ghoul' };
 function spawnMonster(x, y, kind, lv) {
@@ -871,7 +871,7 @@ function generate(lv) {
     monsters.push(spawnMonster(bx, by, 'boss', lv));
   }
 
-  const nm = Math.min(22, 5 + Math.round(((lv - 1) % 10) * 0.8 + zoneOf(lv) * 1.4));   // ramps inside each zone, and zone by zone
+  const nm = Math.round(Math.min(20, 5 + ((lv - 1) % 10) * 0.6 + zoneOf(lv) * 1.1) * (BOSS_NAMES[lv] ? 0.6 : 1));   // fewer on a boss floor: the boss is the fight   // ramps inside each zone, and zone by zone
   for (let i = 0; i < nm && free.length; i++) {
     const [x, y] = cellXY(take());
     const kind = pickKind(lv);
@@ -1038,7 +1038,10 @@ function nextLevel() {
   if (level === zoneStart(level)) {
     P.hp = P.maxHp; saveCheckpoint(); if (level > 1) sfx('power');
     showMsg(level === 1 ? `You step into the Spire · ${z.name}` : `${z.name} · checkpoint · max health ${P.maxHp} · weapons +${zoneOf(level) * 10}%`);
-  } else showMsg(level % 10 === 0 ? `Floor ${level} · ${z.boss} awaits` : `Floor ${level}`);
+  } else if (level % 10 === 0) {
+    saveCheckpoint();                                          // a second checkpoint at the boss's door, so losing to it does not cost the zone
+    showMsg(`Floor ${level} · ${z.boss} awaits · checkpoint`);
+  } else showMsg(`Floor ${level}`);
 }
 function continueGame(cp) {
   kills = cp.kills || 0;
@@ -1196,7 +1199,7 @@ function spawnShot(m, off = 0, dmgMulBy = 1, abs = null) {
 function volley(m) {
   m.atk = ATK_T; msnd(m, 'shot') || sfxAt('eshot', m.x, m.y, 0.8);
   const n = m.burst || 1;
-  for (let i = 0; i < n; i++) spawnShot(m, (i - (n - 1) / 2) * 0.22, n > 1 ? 0.7 : 1);
+  for (let i = 0; i < n; i++) spawnShot(m, (i - (n - 1) / 2) * 0.22, n > 2 ? 0.6 : n > 1 ? 0.55 : 1);   // a fan shares its damage out
 }
 // Boss extras, run every frame while it can see you (see BOSS_MOVES).
 function bossMoves(m, dt, d) {
