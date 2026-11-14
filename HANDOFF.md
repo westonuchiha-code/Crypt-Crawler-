@@ -70,9 +70,8 @@ python3 tools/live.py            # must say: errors: none
 - **Menus:** arcade style (`showMenu`). The best run is saved in localStorage `cc_best`; the checkpoint in `cc_save`.
 
 ## Next steps
-1. **Step 4, the ending:** after the Spire Titan dies on floor 100, play a cutscene (Three.js, like the intro, or 2D) of
-   stepping out of the tower onto the red alien planet with two moons. Then SPIRE CONQUERED and credits. Right now
-   `victory()` only shows a menu.
+1. **Step 4, the ending:** done (see NOTES.md, "Ending"): passage, last door, the two moons, wide shot, SPIRE CONQUERED
+   and a credit roll, then the menu.
 2. **Unused buttons:** wire ○, L1/R1 (previous/next gun?), L2/R2 and START (pause menu). The user hasn't decided; ask.
 3. **Balance pass:** across 100 floors, possibly with more health and armour pickups. Enemy damage still uses the old
    numbers.

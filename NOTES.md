@@ -123,3 +123,9 @@ Zones 4-10 reuse tile mixes and the 3 boss sprites cycle; step 3 gives each zone
   sampled by ray angle in renderFloorCeil. Next: per-zone enemies and bosses (step 3b), then the ending (step 4).
 - Enemies per zone (step 3b): ROSTERS lists [kind, weight] per zone; new kinds slime, knight, golem, harpy, alien, eye,
   horror (stats in spawnMonster, art in tools/draw_monsters.py). Bosses: art boss1..boss10, one per zone.
+
+## Ending (step 4, 2026-11-14)
+`victory()` -> `startEnding()` (Three.js, shares the intro canvas and renderer via `getRenderer3()`) -> `finishEnding()` ->
+`victoryMenu()`. Without Three.js/WebGL it goes straight to the menu. Shots are keyed in `END_CAM`, captions in `END_CAPS`,
+credit roll text in `END_CREDITS`; the scene is built once in `buildEnding()` (seeded, so it is the same every time).
+Skippable after 2.5 s (tap, or pad ✕). Test: serve three r128 locally, then `__cc.eval("victory()")` and set `ending.t`.
