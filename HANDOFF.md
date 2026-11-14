@@ -14,7 +14,7 @@ don't design for it, and it comes out before release. The game is still early; e
 - **Ending (planned):** floor 100 breaks out onto an alien planet.
 
 Live build: Claude artifact https://claude.ai/artifact/9JUAfvhSNJcQNMox1yB1pe (slug 43397ed7-28db-4541-a9f7-31e7b520c09b,
-version 1794622178-40fd at hand-off). It's a multi-file artifact: index.html, assets.js, sounds.js, three.min.js and rqpad.js. If you can't publish to
+version 1794622178-40fd at hand-off). It's a multi-file artifact: index.html, assets.js, sounds.js, three.min.js, rqpad.js and music/*.mp3. If you can't publish to
 that slug, make a new artifact with the same three files and give the user the link.
 
 ## Files
@@ -84,7 +84,7 @@ effects, enemy behaviours and boss moves, weapon power per zone, armour and powe
 pause menu and settings. The user tests by playing; much of this is tuned by simulation only and needs their feedback.
 1. **Feedback round:** fix whatever the user reports from play-testing (sounds were picked by file name, new weapons
    and boss fights are untuned).
-2. **Music:** none yet. Needs a source the user is happy with (Freedoom has BSD-licensed music as MIDI-style lumps).
+2. **Music** is in (8 tracks picked blind); swap tracks in tools/pack_music.py if the user dislikes any.
 3. **More trap kinds** (only spikes and explosive pods exist).
 4. **Unused pad buttons:** ○, L1/R1, L2/R2 are unwired, but the pad is test scaffolding, so low priority.
 5. **Before release:**

@@ -8,6 +8,9 @@ window.__bot = (function () {
   const S = { deathFloors: {}, zones: [], t: 0, floorT: 0, zoneDeaths: 0, done: false, log: [] };
   const Z = () => (S.zones[zoneOf(Math.max(1, level))] = S.zones[zoneOf(Math.max(1, level))] ||
     { deaths: 0, floors: 0, time: 0, endHp: 0, fistTicks: 0, fightTicks: 0, timeouts: 0, assists: 0, dmgTaken: 0 });
+  // skill profiles: 'average' strafes, backs off and picks guns well; 'weak' turns slowly, aims worse, never sidesteps and
+  // only changes gun when the one in hand is empty (a first-time player)
+  let SK = { turn: 5, err: 0.04, strafe: true, retreat: true, smart: true };
   let path = [], pathT = 0, strafe = 1, strafeT = 0, wpnT = 0, lastX = 0, lastY = 0, stuckT = 0, lastHp = 100, assist = false;
 
   function bfs(goalFn, viaStairs) {                         // shortest path of cells from the player to the nearest goal cell
@@ -60,14 +63,14 @@ window.__bot = (function () {
     if (foes.length) {
       foes.sort((a, b) => Math.hypot(a.x - P.x, a.y - P.y) - Math.hypot(b.x - P.x, b.y - P.y));
       const t = foes[0], d = Math.hypot(t.x - P.x, t.y - P.y);
-      if ((wpnT -= DT) <= 0) { wpnT = 0.5; P.weapon = pickWeapon(d, foes.length, t); }
+      if ((wpnT -= DT) <= 0) { wpnT = 0.5; if (SK.smart || !P.owned[P.weapon] || (P.weapon !== 'fist' && P.ammo[P.weapon] <= 0) || P.weapon === 'fist') P.weapon = pickWeapon(d, SK.smart ? foes.length : 1, t); }
       const fist = P.weapon === 'fist'; z.fightTicks++; if (fist) z.fistTicks++;
-      const err = turnTo(Math.atan2(t.y - P.y, t.x - P.x) + Math.sin(S.t * 3.1) * 0.04, 5);
+      const err = turnTo(Math.atan2(t.y - P.y, t.x - P.x) + Math.sin(S.t * 3.1) * SK.err, SK.turn);
       if (err < (d < 3 ? 0.25 : 0.1) && (!fist || d < 1.4)) fire();
       if (fist) keys.KeyW = d > 1.1;
-      else if (d < 3) keys.KeyS = true; else if (d > 7) keys.KeyW = true;
+      else if (d < 3 && SK.retreat) keys.KeyS = true; else if (d > 7) keys.KeyW = true;
       if ((strafeT -= DT) <= 0) { strafeT = 0.5 + Math.random() * 0.7; strafe = -strafe; }
-      if (!fist || d > 2) keys[strafe > 0 ? 'KeyD' : 'KeyA'] = true;
+      if (SK.strafe && (!fist || d > 2)) keys[strafe > 0 ? 'KeyD' : 'KeyA'] = true;
       path = []; pathT = 0;
     } else {
       if ((pathT -= DT) <= 0 || !path.length) { path = plan(); pathT = 0.4; }
@@ -114,7 +117,8 @@ window.__bot = (function () {
   }
   return {
     // start(floor): begin at that floor with every gun unlocked by then and two caches' worth of ammo each (a stand-in for a checkpoint)
-    start(floor = 1) {
+    start(floor = 1, skill = 'average') {
+      if (skill === 'weak') SK = { turn: 2.5, err: 0.14, strafe: false, retreat: true, smart: false };
       try { localStorage.removeItem('cc_save'); } catch (e) {}
       resetGame();
       if (floor > 1) { level = floor - 1; for (const w in WEAPON_FLOOR) if (floor >= WEAPON_FLOOR[w]) { P.owned[w] = true; P.ammo[w] = CRATE_AMMO[w] * 2; } }

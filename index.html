@@ -83,6 +83,7 @@
   <p id="help">Keys: WASD move · ←/→ turn · space fires · 1-9 guns, 0 fists · M map · Esc pause &nbsp;|&nbsp; Pad: ✕ fire · □ gun · △ map · START</p>
   <div id="opts">
     <label>volume <input id="optvol" type="range" min="0" max="100" step="5"></label>
+    <label>music <input id="optmus" type="range" min="0" max="100" step="5"></label>
     <label>mouse speed <input id="optsens" type="range" min="30" max="250" step="10"></label>
   </div>
   <button id="quit" style="display:none">quit to title</button>
@@ -99,6 +100,8 @@
     <p>Fist · FPS Weapon Sprites by Ragnar Random, from models by Quaternius<br><small>opengameart.org · CC0 (public domain)</small></p>
     <h3>Walls, floors and doors</h3>
     <p>Dungeon and door tile sheets · Modular PSX Sewer Kit<br><small>zone tiles recoloured and repainted from these</small></p>
+    <h3>Music</h3>
+    <p>Freedoom soundtrack · the Freedoom project contributors<br><small>played with the FluidR3 GM soundfont by Frank Wen (MIT licence)</small></p>
     <h3>3D scenes</h3>
     <p>three.js · the three.js authors<br><small>threejs.org · MIT licence, below</small></p>
     <h3>Licences</h3>
@@ -200,7 +203,7 @@ THE SOFTWARE.</pre>
 <script>
 (() => {
 const RW = 320, RH = 200, FOV_PLANE = 0.66;   // internal low-res buffer, scaled up to the window
-const STAIRS = 9, DOOR = 4, LOCKED = 5, SECRET = 6, FINAL = 100;   // map tiles: 0 floor, 1-3 walls, 4 door, 5 locked door, 6 secret wall
+const STAIRS = 9, DOOR = 4, LOCKED = 5, SECRET = 6, DARTS = 7, FINAL = 100;   // map tiles: 0 floor, 1-3 walls, 4 door, 5 locked door, 6 secret wall, 7 dart wall
 // ---- the climb: 100 floors in 10 zones of 10; each zone ends with its boss on floor 10, 20 ... 100 ----
 // theme = index into THEMES (surface tiles); zones 4-10 reuse tile mixes until they get their own art (plan step 3).
 const ZONES = [
@@ -491,7 +494,7 @@ const THEMES = [
   { upTo: 999, walls: ['red_rock', 'red_relief', 'red_rock'], door: 'iron_door', floor: 'red_ground', sky: 'alien' }                // the other world
 ];
 const TILEPX = {};                     // name -> Uint32Array(64*64) once decoded
-WALLS[LOCKED] = new Uint32Array(4096); WALLS[SECRET] = new Uint32Array(4096);   // derived from the theme in applyTheme()
+WALLS[LOCKED] = new Uint32Array(4096); WALLS[SECRET] = new Uint32Array(4096); WALLS[DARTS] = new Uint32Array(4096);   // derived from the theme in applyTheme()
 const DRAWN = WALLS.map(w => w && w.slice());   // procedural fallbacks
 let FLOOR_TEX = null, CEIL_TEX = null, themeLv = 0, SKY_PX = null;
 // ---- open-sky panoramas for the high zones (no ceiling). 1536 x 100 strip wrapped round the player, drawn once ----
@@ -530,6 +533,8 @@ function applyTheme(lv) {
     const r = d & 255, g = d >> 8 & 255, b = d >> 16 & 255;
     WALLS[LOCKED][i] = hole ? 0xff101010 : plate ? 0xff30b0e0 : (0xff000000 | Math.min(255, r * 1.2 + 40) | Math.min(255, g * 1.05 + 18) << 8 | (b * 0.55) << 16) >>> 0;
     const w = WALLS[1][i];
+    const slot = y > 26 && y < 38 && (x > 12 && x < 22 || x > 27 && x < 37 || x > 42 && x < 52), rim = y > 24 && y < 40 && x > 10 && x < 54;   // dart wall: three dark slots in an iron band
+    WALLS[DARTS][i] = slot ? 0xff080808 : rim ? 0xff5a5450 : w;
     WALLS[SECRET][i] = (0xff000000 | ((w & 255) * 0.85) | ((w >> 8 & 255) * 0.85) << 8 | ((w >> 16 & 255) * 0.85) << 16) >>> 0;
   }
   FLOOR_TEX = TILEPX[t.floor] || null; CEIL_TEX = TILEPX[t.ceil] || null; SKY_PX = t.sky ? skyPano(t.sky) : null;
@@ -606,6 +611,7 @@ const TRAP_TEX = [trapTex(false), trapTex(true)];
 const keys = {};
 const touchState = { joyX: 0, joyY: 0 };   // filled from RQPad.state.move in rqpad.js
 let W = 0, H = 0, map, explored, P, monsters = [], items = [], shots = [], pshots = [], bolts = [], stairsPos = null;
+let darts = [];                                               // dart walls: { x, y, dx, dy, t } firing down a corridor
 let traps = [], trapAt = null, trapHurtT = 0;                // spike traps: list, lookup by cell (index + 1), hurt throttle
 let props = [], secrets = { total: 0, found: 0 }, lockMsgT = 0;   // scenery, this floor's secret rooms, 'locked' message throttle
 let level = 0, kills = 0, running = false, msgT = 0, mapOn = true;
@@ -669,9 +675,9 @@ const KIND = {
 //  burst: shots per volley; ring: [shots, every s] fired in all directions; stream: [shots, gap s] rapid fire in place of a volley
 //  summon: [kind, most alive, every s]; lunge: charges; blink: [every s] vanishes and reappears beside you
 const BOSS_MOVES = [
-  { shot: 'bolt',   summon: ['skel', 3, 11] },                              // the Warden raises the dead
+  { shot: 'bolt',   summon: ['ghoul', 2, 12] },                              // the Warden raises the dead
   { shot: 'spit',   burst: 3 },                                             // the Sewer King spits a fan
-  { shot: 'bolt',   ring: [10, 5], fly: true },                             // the Hollow Queen: rings of bolts
+  { shot: 'bolt',   ring: [6, 7], fly: true },                             // the Hollow Queen: rings of bolts
   { shot: 'heavy',  lunge: true },                                          // the Iron Castellan charges
   { shot: 'fire',   burst: 3, lunge: true },                                // the Forgeheart: charges and fans fire
   { shot: 'fire',   summon: ['flame', 4, 7], fly: true, weave: 0.4 },       // the Storm Herald spits out flames
@@ -686,7 +692,7 @@ function spawnMonster(x, y, kind, lv) {
     boss: false, name: '', ranged: false, scale: 1, speed: 1, dmg: 5, hp: 55, maxHp: 55, tex: SPR.ghoul,
     shot: 'fire', burst: 1, keep: 0, weave: 0, lungeCd: rnd(2, 4), lungeT: 0, animT: 0 };
   if (kind === 'boss') Object.assign(m, { boss: true, name: BOSS_NAMES[lv], hp: BOSS_HP[lv], tex: SPR.boss, scale: 2.4, speed: 0.75,
-    dmg: Math.round(12 * dmgMul(lv)), ranged: true, heavy: true, ringT: 3, sumT: 5, blinkT: 4 }, BOSS_MOVES[zoneOf(lv)]);
+    dmg: Math.round(8 + 1.6 * zoneOf(lv)), ranged: true, heavy: true, ringT: 3, sumT: 5, blinkT: 4 }, BOSS_MOVES[zoneOf(lv)]);
   else {
     Object.assign(m, KIND[kind] || KIND.ghoul, { tex: SPR[SPR_FALLBACK[kind] || kind] || SPR.ghoul });
     if (!m.prop) { m.hp = Math.round(m.hp * hpMul(lv)); m.dmg = Math.round(m.dmg * dmgMul(lv)); }     // zone scaling for regular enemies
@@ -702,7 +708,7 @@ function generateEntrance() {
   map = new Uint8Array(W * H).fill(2);
   for (let y = 2; y <= 5; y++) for (let x = 1; x <= 5; x++) map[y * W + x] = 0;
   map[1 * W + 3] = DOOR;
-  monsters = []; items = []; shots = []; pshots = []; floorAmmo = 1; props = []; secrets = { total: 0, found: 0 }; traps = []; trapAt = null;
+  monsters = []; items = []; shots = []; pshots = []; floorAmmo = 1; props = []; secrets = { total: 0, found: 0 }; traps = []; trapAt = null; darts = [];
   explored = new Uint8Array(W * H).fill(1);
   P.x = 3.5; P.y = 4.5; P.a = -Math.PI / 2;
 }
@@ -810,6 +816,17 @@ function generate(lv) {
     const ns = !isOpen(x, y - 1) && !isOpen(x, y + 1) && isOpen(x - 1, y) && isOpen(x + 1, y);
     if ((!ew && !ns) || traps.some(t => Math.abs(t.x - x) + Math.abs(t.y - y) < 4)) continue;
     traps.push({ x, y, ph: Math.random() * TRAP_CYCLE, was: false }); trapAt[c] = traps.length; reserved.add(c); n++;
+  }
+  darts = [];                                                // dart walls from floor 12: a wall cell looking down a straight run of 4+ cells
+  for (let n = 0, want = lv >= 12 ? (Math.random() * 3) | 0 : 0, tries = 0; n < want && tries < 400; tries++) {
+    const x = 2 + ((Math.random() * (W - 4)) | 0), y = 2 + ((Math.random() * (H - 4)) | 0);
+    if (map[idx(x, y)] < 1 || map[idx(x, y)] > 3) continue;
+    const open = D4.filter(([dx, dy]) => isOpen(x + dx, y + dy));
+    if (open.length !== 1) continue;
+    const [dx, dy] = open[0]; let run = 0;
+    while (run < 12 && isOpen(x + dx * (run + 1), y + dy * (run + 1))) run++;
+    if (run < 4 || dist[idx(x + dx, y + dy)] < 6 || darts.some(d => Math.abs(d.x - x) + Math.abs(d.y - y) < 6)) continue;
+    map[idx(x, y)] = DARTS; darts.push({ x, y, dx, dy, t: 1 + Math.random() * 2 }); n++;
   }
   // locked door: a corridor cell that cuts the stairs off from the start (as near the stairs as possible) or, failing
   // that, one that seals off a side area as a vault with extra loot; either way the key stays on your side
@@ -951,7 +968,7 @@ function los(x0, y0, x1, y1) {
 // the first key press or click, when browsers allow audio to start.
 const SND = {}, sndLast = {};
 // settings, kept per browser in localStorage 'cc_opts': master volume 0-1 and mouse turn speed (1 = default)
-const opts = Object.assign({ vol: 0.7, sens: 1 }, (() => { try { return JSON.parse(localStorage.getItem('cc_opts')) || {}; } catch (e) { return {}; } })());
+const opts = Object.assign({ vol: 0.7, sens: 1, music: 0.4 }, (() => { try { return JSON.parse(localStorage.getItem('cc_opts')) || {}; } catch (e) { return {}; } })());
 let actx = null, sndMaster = null, sndVolume = opts.vol, actT = 4;
 function audioInit() {
   if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
@@ -985,6 +1002,18 @@ function sfxAt(key, x, y, vol = 1) {
 }
 const msnd = (m, ev, vol = 1) => !!window.SOUND_KEYS && sfxAt((m.art || monArtKey(m)) + '_' + ev, m.x, m.y, vol * (m.boss ? 1.3 : 1));
 addEventListener('keydown', audioInit); addEventListener('pointerdown', audioInit);
+// ---- music: looping tracks in music/<key>.mp3 (tools/pack_music.py), streamed by an <audio> element so only the
+// track in use is downloaded. setMusic(key) switches; nothing plays until the first key press or click. ----
+const musicEl = new Audio(); musicEl.loop = true; musicEl.preload = 'none';
+let musicKey = '', musicOK = false;
+const MUSIC_FOR = lv => lv <= 0 ? 'title' : lv % 10 === 0 ? 'boss' : 'zone' + (1 + (zoneOf(lv) >> 1));   // zones share a track in pairs
+function setMusic(key) {
+  if (key !== musicKey) { musicKey = key; musicEl.src = 'music/' + key + '.mp3'; }
+  musicEl.volume = opts.music;
+  if (musicOK && opts.music > 0) { const p = musicEl.play(); if (p && p.catch) p.catch(() => {}); } else musicEl.pause();
+}
+const musicUnlock = () => { if (!musicOK) { musicOK = true; setMusic(musicKey || 'title'); } };
+addEventListener('keydown', musicUnlock); addEventListener('pointerdown', musicUnlock);
 
 // ---------- gameplay ----------
 function showMsg(t) {
@@ -1002,6 +1031,7 @@ function saveBest() {
 }
 function showMenu(title, text, go, dead) {
   running = false;
+  if (title === 'CRYPT CRAWLER') setMusic('title'); else if (title === 'SPIRE CONQUERED') setMusic('win');
   $('title').textContent = title; $('title').classList.toggle('dead', !!dead);
   $('tag').style.display = title === 'CRYPT CRAWLER' ? '' : 'none';
   introEl.textContent = text; $('go').textContent = go;
@@ -1070,7 +1100,7 @@ function nextLevel(afterSummary) {
   zoneStat.secrets += secrets.found; zoneStat.secretsAll += secrets.total; secrets = { total: 0, found: 0 };
   if (level > 0 && level % 10 === 0 && level < FINAL && !afterSummary) { showSummary(); return; }
   if (level % 10 === 0) zoneStat = { t: 0, kills0: kills, hurt: 0, secrets: 0, secretsAll: 0 };
-  level++;
+  level++; setMusic(MUSIC_FOR(level));
   sfx(level === 1 ? 'door' : 'stairs');
   P.maxHp = zoneMaxHp(level);
   P.hp = Math.min(P.maxHp, P.hp + Math.round(P.maxHp / 4));        // a breather on every staircase
@@ -1089,7 +1119,7 @@ function continueGame(cp) {
   P = newPlayer(); Object.assign(P.owned, cp.owned); Object.assign(P.ammo, cp.ammo);
   for (const w in P.owned) if (!WEAPONS[w]) delete P.owned[w];          // a save from before the weapon change
   P.weapon = WEAPONS[cp.weapon] && P.owned[cp.weapon] ? cp.weapon : (WEAPON_ORDER.find(w => P.owned[w]) || 'fist'); P.armor = cp.armor || 0;
-  level = cp.floor; P.maxHp = P.hp = zoneMaxHp(level); generate(level);
+  level = cp.floor; P.maxHp = P.hp = zoneMaxHp(level); generate(level); setMusic(MUSIC_FOR(level));
   running = true; overlay.style.display = 'none';
   showMsg(`${ZONES[zoneOf(level)].name} · floor ${level}`);
 }
@@ -1234,7 +1264,7 @@ function spawnShot(m, off = 0, dmgMulBy = 1, abs = null) {
   const a = abs === null ? Math.atan2(P.y - m.y, P.x - m.x) + off : abs;
   const sp = m.boss ? 4.2 : 3.2;
   shots.push({ x: m.x, y: m.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 4, kind: m.shot, t: 0,
-    dmg: Math.max(1, Math.round((m.boss ? 10 * dmgMul(level) : m.dmg) * dmgMulBy)) });   // a regular enemy's shot hits as hard as its claws
+    dmg: Math.max(1, Math.round((m.boss ? 6 + 1.4 * zoneOf(level) : m.dmg) * dmgMulBy)) });   // bosses: 8 melee / 6 a shot in the crypt, 22 / 19 at the top   // a regular enemy's shot hits as hard as its claws
 }
 // A volley at the player: `burst` shots fanned out.
 function volley(m) {
@@ -1551,6 +1581,14 @@ function update(dt) {
   items = items.filter(i => !i.taken);
 
   lockMsgT -= dt; trapHurtT -= dt; zoneStat.t += dt; runT += dt;
+  for (const d of darts) {                                   // dart walls: a dart every 2.4 s while you are near
+    if ((d.t -= dt) > 0) continue;
+    d.t = 2.4;
+    const ox = d.x + 0.5 + d.dx * 0.7, oy = d.y + 0.5 + d.dy * 0.7;
+    if (Math.hypot(ox - P.x, oy - P.y) > 10) continue;
+    sfxAt('swing', ox, oy, 0.8);
+    shots.push({ x: ox, y: oy, vx: d.dx * 6, vy: d.dy * 6, life: 3, kind: 'spit', t: 0, dmg: Math.round(6 * dmgMul(level)) });
+  }
   for (const tr of traps) {                                  // spikes: a scrape of metal as they come out, and they bite
     const up = trapUp(tr);
     if (up && !tr.was) sfxAt('swing', tr.x + 0.5, tr.y + 0.5, 0.7);
@@ -2441,6 +2479,7 @@ function buildEnding() {
   return ending;
 }
 function startEnding() {
+  setMusic('win');
   if (!ending) buildEnding();
   const E = ending; E.t = 0; E.capIdx = 0;
   running = false; endActive = true; endStartedAt = performance.now(); document.body.classList.add('intro');
@@ -2540,7 +2579,9 @@ const saveOpts = () => { try { localStorage.setItem('cc_opts', JSON.stringify(op
 $('optvol').addEventListener('input', e => { opts.vol = sndVolume = e.target.value / 100; if (sndMaster) sndMaster.gain.value = sndVolume; saveOpts(); });
 $('optvol').addEventListener('change', () => { audioInit(); sfx('ewand'); });       // a test shot at the new volume
 $('optsens').addEventListener('input', e => { opts.sens = e.target.value / 100; saveOpts(); });
-for (const id of ['optvol', 'optsens']) $(id).addEventListener('click', e => e.stopPropagation());
+$('optmus').value = Math.round(opts.music * 100);
+$('optmus').addEventListener('input', e => { opts.music = e.target.value / 100; setMusic(musicKey || 'title'); saveOpts(); });
+for (const id of ['optvol', 'optsens', 'optmus']) $(id).addEventListener('click', e => e.stopPropagation());
 $('quit').addEventListener('click', e => {
   e.stopPropagation();
   showMenu('CRYPT CRAWLER', 'Erupt from the crypt, climb the Spire floor by floor, and slay the guardian on every tenth floor.', 'PRESS START');

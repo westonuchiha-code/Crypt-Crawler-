@@ -243,3 +243,15 @@ floor; Star-Eater and Spire Titan moves eased.
 - Zone results: taking the stairs after a boss calls `showSummary()` (time, kills, secrets, damage taken, from
   `zoneStat`); PRESS START runs `nextLevel(true)`. Total run time (`runT`) shows on the victory menu.
 - Bot after these changes: no stalls in 200 floors; deaths only at the bosses of floors 80, 90 and 100.
+
+## Music, dart walls, weak-player bot (2026-11-14, evening)
+- Music: eight looping MP3s in music/ (title, zone1-zone5, boss, win), rendered from Freedoom MIDI by
+  `python3 tools/pack_music.py` (fluidsynth + FluidR3_GM soundfont + ffmpeg; all levelled to -20 dB). They are separate
+  files, streamed by one `<audio>` element (`setMusic`, `MUSIC_FOR(level)`: zones share a track in pairs, boss floors
+  get `boss`). Publish music/*.mp3 with the artifact. Volume: `opts.music`, slider `#optmus`. Tracks were picked blind.
+- Dart walls (floor 12+): map tile `DARTS` = 7 (wall texture with slots), list `darts`; each fires a projectile down its
+  corridor every 2.4 s while the player is within 10 cells.
+- Bot profiles: `python3 tools/bot.py 3 1 weak 40` runs a slow, non-dodging player over floors 1-40. Used to soften the
+  early bosses: boss damage is now 8 melee / 6 per shot in zone 1 rising to 22 / 19 in zone 10 (was a flat multiple),
+  the Warden raises two ghouls instead of three sabreclaws, the Hollow Queen's rings are smaller. Weak bot: no deaths in
+  zones 1-3. Average bot: unchanged curve; the final boss still costs it 1-4 deaths (high variance between runs).
