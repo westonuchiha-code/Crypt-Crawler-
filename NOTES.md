@@ -216,3 +216,18 @@ Not done from this item: traps other than pods.
 Esc or P in play calls `pauseGame()` (also on losing pointer lock, which is how Esc usually arrives, and on tab switch);
 the overlay shows PAUSED with RESUME (`resumeGame`) and "quit to title" (the checkpoint is kept). Settings sliders
 `#optvol` and `#optsens` sit on the title and pause menus and are saved in localStorage `cc_opts` (`opts.vol`, `opts.sens`).
+
+## Test bot and bot-driven balance (2026-11-14)
+The user cannot play-test often, so **do not hand work back to them for testing; check it yourself**. Tools for that:
+- `python3 tools/bot.py [runs] [first floor]`: tools/bot.js plays the real `update()` loop at 30 ticks a second with no
+  drawing (about 3 minutes per climb). Prints per zone: deaths, damage taken per floor (`hit`), time, share of fighting
+  done with fists, floors it could not finish (`t/o`), and deaths by floor. A climb from floor N starts with a stand-in loadout.
+- The bot is a fixed mediocre player. Use it to compare zones, catch spikes and soft-locks; not to predict a human.
+- Every stall it reported so far was a bot bug (circling pickups, brushing pillars), not a game bug; all fixed in the bot.
+Tuning done from its runs (before -> after, damage per floor as % of max health): zone 5 76% -> 34%, zone 9 108% -> ~60%,
+zone 10 154% -> ~65%; deaths now only happen at bosses (floors 40, 90, 100), about 2-3 per climb in total.
+Changes: `dmgMul` 0.12 -> 0.10 per zone; golem and eye damage down; a fan of shots shares its damage; rosters for zones
+5, 6, 9, 10; enemy count `nm` grows slower and boss floors have 60% of it; a second checkpoint on entering each boss
+floor; Star-Eater and Spire Titan moves eased.
+- Enemy pathfinding: `updateFlow()` builds a step map to the player 4 times a second; an enemy that has noticed you
+  (`m.woke`) and loses sight of you follows it, so enemies come round corners. Bot curve unchanged by it.

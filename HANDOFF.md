@@ -31,6 +31,7 @@ that slug, make a new artifact with the same three files and give the user the l
 | sounds.js | **Generated; never edit by hand.** Sound effects as MP3 data, built by tools/pack_sounds.py. |
 | tools/sound_cast.py | Which sound plays for each game event and enemy. Edit this, then run tools/pack_sounds.py. |
 | tools/balance.py | Prints the balance table per zone: enemy health, ammo margin, hits to die, healing. |
+| tools/bot.py, bot.js | Test bot: plays all 100 floors on the real game logic and reports deaths, damage and stalls per zone. |
 | tools/live.py | Smoke test: plays every weapon on several floors. Must print `errors: none`. |
 | tools/shoot.py | Screenshot contact sheet of weapon animations. |
 | tools/compose_weapons.py, render_monsters.py, mockup.py | Old pipelines (cut weapons, rejected 3D-model monsters). Kept for reference. |
@@ -51,6 +52,8 @@ python3 tools/live.py            # must say: errors: none
   `__cc.eval("level=35; generate(35)")`.
 
 ## How the user wants to work (important)
+- **Don't ask them to play-test:** they are usually at work and test a day or two later. Verify with tools/bot.py,
+  tools/balance.py, simulations and screenshots, and keep working. (They said so, angrily, on 2026-11-14.)
 - **Keep it short:** they're on a phone and watch their usage, so keep messages and token use lean.
 - **Mock-ups for anything visual:** for a new look, art or weapon, render a screenshot or sheet first and show it before
   changing the published game. When they say "continue" or "make the best choice", you may go ahead, but still show

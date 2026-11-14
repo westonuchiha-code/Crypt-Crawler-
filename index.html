@@ -1432,7 +1432,25 @@ function drawArrowShots() {
   bctx.lineWidth = 1;
 }
 
+// Chase map: steps from every open cell to the player's cell, redone a few times a second. Enemies that have noticed
+// you follow it downhill when they lose sight of you, so they come round corners instead of forgetting you.
+let flow = null, flowT = 0;
+function updateFlow() {
+  if (!flow || flow.length !== W * H) flow = new Int16Array(W * H);
+  flow.fill(-1);
+  const start = Math.floor(P.y) * W + Math.floor(P.x), q = [start]; flow[start] = 0;
+  const propCells = new Set(props.filter(p => p.solid).map(p => Math.floor(p.y) * W + Math.floor(p.x)));
+  for (let i = 0; i < q.length; i++) {
+    const c = q[i], d = flow[c] + 1; if (d > 40) break;
+    for (const n of [c + 1, c - 1, c + W, c - W]) {
+      if (n < 0 || n >= flow.length || flow[n] >= 0) continue;
+      const t = map[n]; if ((t !== 0 && t !== STAIRS) || propCells.has(n)) continue;
+      flow[n] = d; q.push(n);
+    }
+  }
+}
 function updateMonsters(dt) {
+  if ((flowT -= dt) <= 0) { flowT = 0.25; updateFlow(); }
   for (const m of monsters) {
     if (m.dead) { m.dieT += dt; continue; }               // corpses only play out their death frames
     m.hurt -= dt; m.mcool -= dt; m.rcool -= dt; m.atk = (m.atk || 0) - dt; m.animT = (m.animT || 0) + dt;
@@ -1466,6 +1484,11 @@ function updateMonsters(dt) {
       const wv = m.weave ? Math.sin(m.animT * 2.2 + m.ph) * m.weave : 0;                       // sideways drift
       if (dir || wv) moveEnt(m, (ex / d * dir - ey / d * wv) * spd, (ey / d * dir + ex / d * wv) * spd);
       if (d <= (m.boss ? 1.6 : 1.0) && m.mcool <= 0) { m.mcool = 1.0; m.atk = ATK_T; msnd(m, 'atk'); hurtPlayer(m.dmg); }
+    } else if (m.woke && flow[Math.floor(m.y) * W + Math.floor(m.x)] > 0) {   // lost sight of you: follow the chase map
+      const c = Math.floor(m.y) * W + Math.floor(m.x); let best = c;
+      for (const n of [c + 1, c - 1, c + W, c - W]) if (flow[n] >= 0 && flow[n] < flow[best]) best = n;
+      const tx = (best % W) + 0.5 - m.x, ty = ((best / W) | 0) + 0.5 - m.y, tl = Math.hypot(tx, ty) || 1;
+      moveEnt(m, tx / tl * spd, ty / tl * spd);
     } else {
       m.wander -= dt;
       if (m.wander <= 0) { m.wander = rnd(1, 3); m.wa = rnd(0, Math.PI * 2); }
