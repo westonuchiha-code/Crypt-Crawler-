@@ -14,7 +14,7 @@ don't design for it, and it comes out before release. The game is still early; e
 - **Ending (planned):** floor 100 breaks out onto an alien planet.
 
 Live build: Claude artifact https://claude.ai/artifact/9JUAfvhSNJcQNMox1yB1pe (slug 43397ed7-28db-4541-a9f7-31e7b520c09b,
-version 1794622178-40fd at hand-off). It's a multi-file artifact: index.html, assets.js, sounds.js and rqpad.js. If you can't publish to
+version 1794622178-40fd at hand-off). It's a multi-file artifact: index.html, assets.js, sounds.js, three.min.js and rqpad.js. If you can't publish to
 that slug, make a new artifact with the same three files and give the user the link.
 
 ## Files
@@ -45,8 +45,8 @@ python3 tools/pack_assets.py     # always after art changes
 python3 -c "import re;s=open('index.html').read();open('/tmp/i.js','w').write(max(re.findall(r'<script>(.*?)</script>',s,re.S),key=len))" && node --check /tmp/i.js
 python3 tools/live.py            # must say: errors: none
 ```
-- **Test setup:** the tools use Playwright with /usr/bin/google-chrome. Block three.min.js from the CDN, or serve
-  three@0.128.0 locally (`npm i three@0.128.0`).
+- **Test setup:** the tools use Playwright with /usr/bin/google-chrome and block three.min.js to skip the intro.
+  pack_assets.py needs Pillow, numpy and scipy; pack_sounds.py needs ffmpeg.
 - **Disabling the controller:** add `#nopad` to the URL to turn off the on-screen pad in screenshots.
 - **Test hook:** `window.__cc.eval(src)` runs code inside the game's scope, for example
   `__cc.eval("level=35; generate(35)")`.
@@ -85,11 +85,10 @@ pause menu and settings. The user tests by playing; much of this is tuned by sim
 1. **Feedback round:** fix whatever the user reports from play-testing (sounds were picked by file name, new weapons
    and boss fights are untuned).
 2. **Music:** none yet. Needs a source the user is happy with (Freedoom has BSD-licensed music as MIDI-style lumps).
-3. **Traps** beyond explosive pods, if wanted.
+3. **More trap kinds** (only spikes and explosive pods exist).
 4. **Unused pad buttons:** ○, L1/R1, L2/R2 are unwired, but the pad is test scaffolding, so low priority.
 5. **Before release:**
    - remove the on-screen pad (or set RQPad `onlyOnTouch: true`)
    - **remind the user:** the wall/floor/door textures are from a pack they bought on itch.io; they will look up its
      name and licence later (steps in CREDITS.md, "Reminder"). Everything else is on the in-game credits page.
-   - bundle three.js so the intro and ending don't depend on the CDN
    - wrap as a desktop app for Steam / itch.io

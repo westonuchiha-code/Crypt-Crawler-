@@ -231,3 +231,15 @@ Changes: `dmgMul` 0.12 -> 0.10 per zone; golem and eye damage down; a fan of sho
 floor; Star-Eater and Spire Titan moves eased.
 - Enemy pathfinding: `updateFlow()` builds a step map to the player 4 times a second; an enemy that has noticed you
   (`m.woke`) and loses sight of you follows it, so enemies come round corners. Bot curve unchanged by it.
+
+## 2026-11-14, later: bundled three.js, dead code out, spike traps, zone results
+- three.min.js (r128, MIT) is now a file in the project and must be published with the others; no CDN. The tools still
+  block `**/three.min.js` to skip the intro, which keeps working for the local file.
+- Removed the old vector weapons (pistol, shotgun, wand, lightning hand, sword, arrows) and their constants. With no
+  assets.js every weapon now falls back to the drawn fist. `ART` only holds the photo fist.
+- Spike traps: `traps` + `trapAt` (cell -> index + 1), placed in corridor cells from floor 7 (0-3 a floor). `trapUp(tr)`
+  is true for `TRAP_UP` of every `TRAP_CYCLE` seconds; standing on raised spikes costs `TRAP_DMG` x dmgMul every 0.6 s.
+  The plate is drawn in `renderFloorCeil` with `TRAP_TEX`; enemies ignore traps. Not a map tile, so nothing else changed.
+- Zone results: taking the stairs after a boss calls `showSummary()` (time, kills, secrets, damage taken, from
+  `zoneStat`); PRESS START runs `nextLevel(true)`. Total run time (`runT`) shows on the victory menu.
+- Bot after these changes: no stalls in 200 floors; deaths only at the bosses of floors 80, 90 and 100.
