@@ -15,11 +15,11 @@
   body.intro #hud,body.intro #msg{display:none}
   /* ending: title and credit roll laid over the cutscene */
   #endtitle,#endroll{position:fixed;display:none;pointer-events:none;text-align:center;text-transform:uppercase;overflow:hidden}
-  #endtitle{font:900 clamp(20px,6vw,60px)/1 Impact,'Arial Black','Roboto Condensed',sans-serif;letter-spacing:2px;transition:opacity 1.5s;opacity:0;
+  #endtitle{white-space:nowrap;font:900 40px/1 Impact,'Arial Black','Roboto Condensed',sans-serif;letter-spacing:2px;transition:opacity 1.5s;opacity:0;
     background:linear-gradient(#fff6a8 0%,#ffd23a 30%,#ff7a12 60%,#c41a08 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
     filter:drop-shadow(0 2px 0 #300) drop-shadow(0 0 12px rgba(0,0,0,.8))}
   #endroll{-webkit-mask-image:linear-gradient(transparent,#000 18%,#000 82%,transparent);mask-image:linear-gradient(transparent,#000 18%,#000 82%,transparent)}
-  #endin{color:#f2e6c0;text-shadow:0 2px 4px #000,0 0 8px #000;letter-spacing:2px;font-size:clamp(10px,1.9vw,17px);line-height:1.9;will-change:transform}
+  #endin{color:#f2e6c0;text-shadow:0 2px 4px #000,0 0 8px #000;letter-spacing:.12em;line-height:1.9;will-change:transform}
   #endin b{display:block;color:#ffb060;font-size:.8em;letter-spacing:4px;margin-top:1.6em}
   #hud{position:fixed;left:12px;top:12px;right:90px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;pointer-events:none;text-shadow:0 1px 2px #000;font-size:14px}
   #hpbar{width:180px;height:12px;border:1px solid #777;background:#300}
@@ -1618,8 +1618,8 @@ function resize() {
   Object.assign(introCanvas.style, { left: (s.x + (s.width - iw) / 2) + 'px', top: (s.y + (s.height - ih) / 2) + 'px',
     width: iw + 'px', height: ih + 'px', transform: 'none' });
   const il = s.x + (s.width - iw) / 2, it = s.y + (s.height - ih) / 2;
-  Object.assign($('endtitle').style, { left: il + 'px', width: iw + 'px', top: (it + ih * 0.07) + 'px' });
-  Object.assign($('endroll').style, { left: il + 'px', width: iw + 'px', top: (it + ih * 0.3) + 'px', height: (ih * 0.66) + 'px' });
+  Object.assign($('endtitle').style, { left: il + 'px', width: iw + 'px', top: (it + ih * 0.07) + 'px', fontSize: (iw * 0.085) + 'px' });   // sized from the picture, not the screen: the pad narrows it
+  Object.assign($('endroll').style, { left: il + 'px', width: iw + 'px', top: (it + ih * 0.3) + 'px', height: (ih * 0.66) + 'px', fontSize: Math.max(9, iw * 0.027) + 'px' });
   Object.assign(capEl.style, { left: s.x + 'px', right: (innerWidth - s.x - s.width) + 'px',
     top: 'auto', bottom: (innerHeight - (s.y + (s.height + ih) / 2) + ih * 0.08) + 'px' });
 }
