@@ -165,3 +165,12 @@ In index.html: `audioInit()` starts Web Audio on the first key press or click an
 `sfxAt(key, x, y)` (distance fade and left/right pan) and `msnd(monster, event)`. `sndVolume` is the master volume
 (no settings screen yet). Enemies cry out when they first see you (`m.woke`), and one nearby enemy growls every few seconds.
 The sounds were chosen by name, not by ear: expect some to need swapping once the user has listened.
+
+## Enemy behaviour and boss moves (2026-11-14)
+`KIND` (index.html, above `spawnMonster`) is now the one table of enemy stats and traits: `ranged` + `shot` + `burst`,
+`keep` (ranged enemies hold that distance and back off), `lunge` (straight-line charge), `weave` (sideways drift),
+`fly` (bobs), `heavy` (40% knockback). `BOSS_MOVES` gives each zone's boss its extras: `burst`, `ring`, `stream`,
+`summon` (minions are flagged `m.minion`), `lunge`, `blink`; below half health they come 30% faster (`bossMoves`).
+Enemy projectiles are sprites now: `SHOTS` in tools/enemy_cast.py -> `window.SHOTS` -> `SHOT_PX`, drawn at eye height.
+Checked by simulation only (a player standing still next to each boss for 7 s loses 60-100% of max health); the feel of
+each fight still needs the user's play-testing. `m.scale` and `tex` only matter for the no-assets fallback.

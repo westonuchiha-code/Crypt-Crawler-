@@ -533,6 +533,20 @@ if (window.MONSTERS) for (const k in MONSTERS) {
     im.src = src;
   });
 }
+// Enemy projectiles (window.SHOTS): two flight frames each, centred at eye height.
+const SHOT_PX = {};
+if (window.SHOTS) for (const k in SHOTS) {
+  const S = SHOTS[k], frames = []; let left = S.frames.length;
+  S.frames.forEach((src, i) => {
+    const im = new Image();
+    im.onload = () => {
+      const c = mk(im.width, im.height); c.getContext('2d').drawImage(im, 0, 0);
+      const px = toPixels(c); px.w = im.width; px.h = im.height; px.ox = im.width / 2; px.oy = im.height / 2 + 0.5 / S.k; frames[i] = px;
+      if (--left === 0) SHOT_PX[k] = { frames, k: S.k };
+    };
+    im.src = src;
+  });
+}
 const ATK_T = 0.4, DIE_FPS = 9, WALK_FPS = 6;   // attack animation length (s), death and walk frame rates
 
 // ---------- state ----------
@@ -570,27 +584,52 @@ function pickKind(lv) {
   for (const [k, w] of list) { if ((r -= w) < 0) return k; }
   return list[0][0];
 }
+// What each enemy is. hp / dmg are base values (scaled per zone); speed 1 is a walk.
+//  ranged: throws `shot` projectiles (burst = how many, fanned out); keep: ranged enemies hold about this distance
+//  lunge: charges in a straight line now and then; weave: drifts side to side (flyers); fly: bobs in the air
+//  heavy: mostly shrugs off knockback
+const KIND = {
+  rat:    { hp: 30,  speed: 1.5, dmg: 3,  lunge: true },                                              // flesh worm: weak, darts at you
+  ghoul:  { hp: 65,  speed: 0.75, dmg: 6 },                                                           // hooded dead: slow, steady
+  skel:   { hp: 75,  speed: 1.35, dmg: 6,  weave: 0.35 },                                             // sabreclaw: quick slasher
+  imp:    { hp: 55,  speed: 1.0, dmg: 4,  ranged: true, shot: 'fire' },                               // serpentipede: fireballs, then claws
+  flame:  { hp: 40,  speed: 1.0, dmg: 4,  ranged: true, shot: 'fire', keep: 3, weave: 0.6, fly: true },
+  angel:  { hp: 95,  speed: 0.9, dmg: 6,  ranged: true, shot: 'bolt', burst: 3, keep: 4.5, weave: 0.4, fly: true },   // wizard: fan of three
+  slime:  { hp: 70,  speed: 1.0, dmg: 6,  lunge: true },                                              // red beast: pounces
+  knight: { hp: 120, speed: 0.9, dmg: 9,  heavy: true },                                              // undead warrior: armoured
+  golem:  { hp: 170, speed: 0.65, dmg: 11, ranged: true, shot: 'heavy', heavy: true },                // steel brute: slow, hits hard both ways
+  harpy:  { hp: 40,  speed: 1.7, dmg: 5,  lunge: true, weave: 0.7, fly: true },                       // gargoyle: swoops
+  alien:  { hp: 65,  speed: 1.1, dmg: 6,  ranged: true, shot: 'spit' },
+  eye:    { hp: 85,  speed: 0.7, dmg: 7,  ranged: true, shot: 'spit', keep: 3.5, weave: 0.3, fly: true },
+  horror: { hp: 170, speed: 0.6, dmg: 9,  ranged: true, shot: 'blob', burst: 2, keep: 4, heavy: true }       // twin cannons
+};
+// Each zone's boss has its own moves on top of walking at you and shooting:
+//  burst: shots per volley; ring: [shots, every s] fired in all directions; stream: [shots, gap s] rapid fire in place of a volley
+//  summon: [kind, most alive, every s]; lunge: charges; blink: [every s] vanishes and reappears beside you
+const BOSS_MOVES = [
+  { shot: 'bolt',   summon: ['skel', 3, 11] },                              // the Warden raises the dead
+  { shot: 'spit',   burst: 3 },                                             // the Sewer King spits a fan
+  { shot: 'bolt',   ring: [10, 5], fly: true },                             // the Hollow Queen: rings of bolts
+  { shot: 'heavy',  lunge: true },                                          // the Iron Castellan charges
+  { shot: 'fire',   burst: 3, lunge: true },                                // the Forgeheart: charges and fans fire
+  { shot: 'fire',   summon: ['flame', 4, 7], fly: true, weave: 0.4 },       // the Storm Herald spits out flames
+  { shot: 'heavy',  burst: 2, ring: [8, 7] },                               // the Skywyrm
+  { shot: 'bolt',   stream: [7, 0.18] },                                    // the Void Archon: a hose of bolts
+  { shot: 'fire',   blink: [6], ring: [12, 6] },                            // the Star-Eater steps through space
+  { shot: 'rocket', burst: 3, summon: ['horror', 2, 14], ring: [14, 8] }    // the Spire Titan: rockets, rings and reinforcements
+];
+const SPR_FALLBACK = { slime: 'ghoul', knight: 'skel', golem: 'ghoul', harpy: 'imp', alien: 'imp', eye: 'flame', horror: 'ghoul' };
 function spawnMonster(x, y, kind, lv) {
-  const m = { x, y, kind, dead: false, hurt: 0, mcool: 0, rcool: rnd(1, 2.5), wander: 0, wa: 0,
-    boss: false, name: '', ranged: false, scale: 1, speed: 1, dmg: 5, hp: 55, maxHp: 55, tex: SPR.ghoul };
-  if (kind === 'boss') Object.assign(m, { boss: true, name: BOSS_NAMES[lv], hp: BOSS_HP[lv], maxHp: BOSS_HP[lv],
-    tex: SPR.boss, scale: 2.4, speed: 0.75, dmg: 12 * dmgMul(lv), ranged: true });
-  else if (kind === 'imp') Object.assign(m, { ranged: true, hp: 55, maxHp: 55, tex: SPR.imp, speed: 1.0, dmg: 4 });
-  else if (kind === 'rat') Object.assign(m, { hp: 30, maxHp: 30, tex: SPR.rat, scale: 0.7, speed: 1.9, dmg: 3 });
-  else if (kind === 'flame') Object.assign(m, { ranged: true, hp: 45, maxHp: 45, tex: SPR.flame, scale: 1.0, speed: 0.8, dmg: 4 });
-  else if (kind === 'angel') { const hp = 100; Object.assign(m, { ranged: true, hp, maxHp: hp, tex: SPR.angel, scale: 1.25, speed: 0.9, dmg: 7 }); }
-  else if (kind === 'skel') { const hp = 80; Object.assign(m, { hp, maxHp: hp, tex: SPR.skel, speed: 1.3, dmg: 6 }); }
-  else if (kind === 'slime') Object.assign(m, { hp: 50, maxHp: 50, tex: SPR.ghoul, scale: 0.8, speed: 0.8, dmg: 5 });
-  else if (kind === 'knight') Object.assign(m, { hp: 110, maxHp: 110, tex: SPR.skel, scale: 1.05, speed: 0.9, dmg: 8 });
-  else if (kind === 'golem') Object.assign(m, { hp: 160, maxHp: 160, tex: SPR.ghoul, scale: 1.3, speed: 0.6, dmg: 10 });
-  else if (kind === 'harpy') Object.assign(m, { hp: 45, maxHp: 45, tex: SPR.imp, scale: 1.0, speed: 1.8, dmg: 5 });
-  else if (kind === 'alien') Object.assign(m, { ranged: true, hp: 60, maxHp: 60, tex: SPR.imp, scale: 0.95, speed: 1.1, dmg: 6 });
-  else if (kind === 'eye') Object.assign(m, { ranged: true, hp: 70, maxHp: 70, tex: SPR.flame, scale: 1.0, speed: 0.7, dmg: 7 });
-  else if (kind === 'horror') Object.assign(m, { hp: 150, maxHp: 150, tex: SPR.ghoul, scale: 1.25, speed: 1.0, dmg: 11 });
-  else { const hp = 65; Object.assign(m, { hp, maxHp: hp, tex: SPR.ghoul, speed: 0.9, dmg: 5 }); }
-  if (!m.boss) {                                     // zone scaling for regular enemies
-    m.hp = m.maxHp = Math.round(m.hp * hpMul(lv)); m.dmg = Math.round(m.dmg * dmgMul(lv));
+  const m = { x, y, kind, dead: false, hurt: 0, mcool: 0, rcool: rnd(1, 2.5), wander: 0, wa: 0, ph: rnd(0, 6.28),
+    boss: false, name: '', ranged: false, scale: 1, speed: 1, dmg: 5, hp: 55, maxHp: 55, tex: SPR.ghoul,
+    shot: 'fire', burst: 1, keep: 0, weave: 0, lungeCd: rnd(2, 4), lungeT: 0, animT: 0 };
+  if (kind === 'boss') Object.assign(m, { boss: true, name: BOSS_NAMES[lv], hp: BOSS_HP[lv], tex: SPR.boss, scale: 2.4, speed: 0.75,
+    dmg: Math.round(12 * dmgMul(lv)), ranged: true, heavy: true, ringT: 3, sumT: 5, blinkT: 4 }, BOSS_MOVES[zoneOf(lv)]);
+  else {
+    Object.assign(m, KIND[kind] || KIND.ghoul, { tex: SPR[SPR_FALLBACK[kind] || kind] || SPR.ghoul });
+    m.hp = Math.round(m.hp * hpMul(lv)); m.dmg = Math.round(m.dmg * dmgMul(lv));     // zone scaling for regular enemies
   }
+  m.maxHp = m.hp;
   return m;
 }
 
@@ -904,7 +943,7 @@ function hurtMonster(m, dmg, knock = 0, stun = 0, fx = P.x, fy = P.y) {
   m.hp -= dmg; m.hurt = 0.15; m.woke = true;
   if (m.hp > 0 && Math.random() < 0.6) msnd(m, 'pain', 0.8);
   if (knock) {
-    const ex = m.x - fx, ey = m.y - fy, d = Math.hypot(ex, ey) || 1, k = knock * (m.boss ? 0.2 : 1) * 6;
+    const ex = m.x - fx, ey = m.y - fy, d = Math.hypot(ex, ey) || 1, k = knock * (m.boss ? 0.2 : m.heavy ? 0.4 : 1) * 6;
     m.kbx = (m.kbx || 0) + ex / d * k; m.kby = (m.kby || 0) + ey / d * k;
   }
   if (stun) m.stun = Math.max(m.stun || 0, stun * (m.boss ? 0.3 : 1));
@@ -954,15 +993,51 @@ function fire() {
   dropIfEmpty(used);
 }
 
-function spawnShot(m) {
-  const d = Math.hypot(P.x - m.x, P.y - m.y) || 1;
+// One enemy projectile from m, `off` radians away from the line to the player (or at absolute angle `abs`).
+function spawnShot(m, off = 0, dmgMulBy = 1, abs = null) {
+  const a = abs === null ? Math.atan2(P.y - m.y, P.x - m.x) + off : abs;
   const sp = m.boss ? 4.2 : 3.2;
+  shots.push({ x: m.x, y: m.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 4, kind: m.shot, t: 0,
+    dmg: Math.max(1, Math.round((m.boss ? 10 * dmgMul(level) : m.dmg) * dmgMulBy)) });   // a regular enemy's shot hits as hard as its claws
+}
+// A volley at the player: `burst` shots fanned out.
+function volley(m) {
   m.atk = ATK_T; msnd(m, 'shot') || sfxAt('eshot', m.x, m.y, 0.8);
-  shots.push({ x: m.x, y: m.y, vx: (P.x - m.x) / d * sp, vy: (P.y - m.y) / d * sp, life: 4, dmg: m.boss ? Math.round(10 * dmgMul(level)) : m.dmg });   // a regular enemy's shot hits as hard as its claws
+  const n = m.burst || 1;
+  for (let i = 0; i < n; i++) spawnShot(m, (i - (n - 1) / 2) * 0.22, n > 1 ? 0.7 : 1);
+}
+// Boss extras, run every frame while it can see you (see BOSS_MOVES).
+function bossMoves(m, dt, d) {
+  const rage = m.hp < m.maxHp / 2 ? 0.7 : 1;                  // below half health everything comes faster
+  if (m.ring && (m.ringT -= dt) <= 0) {
+    m.ringT = m.ring[1] * rage; m.atk = ATK_T; msnd(m, 'shot') || sfxAt('eshot', m.x, m.y);
+    for (let i = 0; i < m.ring[0]; i++) spawnShot(m, 0, 0.5, m.ph + i / m.ring[0] * Math.PI * 2);
+    m.ph += 0.3;
+  }
+  if (m.summon && (m.sumT -= dt) <= 0) {
+    m.sumT = m.summon[2] * rage;
+    if (monsters.filter(o => o.minion && !o.dead).length < m.summon[1]) {
+      for (let tries = 0; tries < 12; tries++) {
+        const a = rnd(0, 6.28), x = m.x + Math.cos(a) * 1.4, y = m.y + Math.sin(a) * 1.4;
+        if (blocked(x, y)) continue;
+        const k = spawnMonster(x, y, m.summon[0], level); k.minion = true; k.woke = true; monsters.push(k);
+        msnd(m, 'see', 0.8); break;
+      }
+    }
+  }
+  if (m.blink && (m.blinkT -= dt) <= 0 && d > 3) {
+    m.blinkT = m.blink[0] * rage;
+    for (let tries = 0; tries < 16; tries++) {
+      const a = rnd(0, 6.28), x = P.x + Math.cos(a) * 2.6, y = P.y + Math.sin(a) * 2.6;
+      if (blocked(x, y) || !los(x, y, P.x, P.y)) continue;
+      m.x = x; m.y = y; m.mcool = 0.7; sfxAt('stairs', x, y); break;
+    }
+  }
+  if (m.streamN > 0 && (m.streamT -= dt) <= 0) { m.streamN--; m.streamT = m.stream[1]; m.atk = ATK_T; sfxAt('eshot', m.x, m.y, 0.6); spawnShot(m, rnd(-0.07, 0.07), 0.35); }
 }
 function updateShots(dt) {
   for (const s of shots) {
-    s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+    s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; s.t += dt;
     if (solid(s.x, s.y)) { s.life = -1; continue; }
     if (Math.hypot(s.x - P.x, s.y - P.y) < 0.4) { s.life = -1; sfx('eboom', 0.7); hurtPlayer(s.dmg); }
   }
@@ -1163,15 +1238,28 @@ function updateMonsters(dt) {
       if (Math.abs(m.kbx) + Math.abs(m.kby) < 0.05) m.kbx = m.kby = 0;
     }
     if (m.stun > 0) { m.stun -= dt; continue; }             // stunned: no moving or attacking
-    const ex = P.x - m.x, ey = P.y - m.y, d = Math.hypot(ex, ey);
+    const ex = P.x - m.x, ey = P.y - m.y, d = Math.hypot(ex, ey) || 1;
     const spd = (0.85 + 0.04 * zoneOf(level) + 0.01 * ((level - 1) % 10)) * m.speed * dt;
+    if (m.lungeT > 0) {                                     // mid-charge: straight on, three times as fast
+      m.lungeT -= dt; moveEnt(m, m.lx * spd * 3, m.ly * spd * 3);
+      if (d <= (m.boss ? 1.6 : 1.0) && m.mcool <= 0) { m.mcool = 1.0; m.atk = ATK_T; m.lungeT = 0; msnd(m, 'atk'); hurtPlayer(m.dmg); }
+      continue;
+    }
     if (d < 11 && los(m.x, m.y, P.x, P.y)) {
       if (!m.woke) { m.woke = true; msnd(m, 'see'); }       // first sight of you: its alert cry
+      if (m.boss) bossMoves(m, dt, d);
       if (m.ranged && m.rcool <= 0 && d > 2.2) {
         m.rcool = m.boss ? 1.5 : 2.6;
-        spawnShot(m);
+        if (m.stream) { m.streamN = m.stream[0]; m.streamT = 0; m.rcool = 1.6 + m.stream[0] * m.stream[1]; }
+        else volley(m);
       }
-      if (d > (m.boss ? 1.3 : 0.9)) moveEnt(m, ex / d * spd, ey / d * spd);
+      if (m.lunge && (m.lungeCd -= dt) <= 0 && d > 2.2 && d < 7) {
+        m.lungeCd = rnd(2.5, 4.5); m.lungeT = 0.45; m.lx = ex / d; m.ly = ey / d; msnd(m, 'atk', 0.8);
+      }
+      const reach = m.boss ? 1.3 : 0.9;
+      const dir = d > Math.max(reach, m.keep) ? 1 : (m.keep && d < m.keep - 1.2 ? -0.6 : 0);   // close in, hold, or back off
+      const wv = m.weave ? Math.sin(m.animT * 2.2 + m.ph) * m.weave : 0;                       // sideways drift
+      if (dir || wv) moveEnt(m, (ex / d * dir - ey / d * wv) * spd, (ey / d * dir + ex / d * wv) * spd);
       if (d <= (m.boss ? 1.6 : 1.0) && m.mcool <= 0) { m.mcool = 1.0; m.atk = ATK_T; msnd(m, 'atk'); hurtPlayer(m.dmg); }
     } else {
       m.wander -= dt;
@@ -1374,11 +1462,16 @@ function renderSprites(dirX, dirY, planeX, planeY) {
       else if (m.atk > 0) f = art.atk[Math.min(art.atk.length - 1, Math.floor((1 - m.atk / ATK_T) * art.atk.length))];
       else if (m.hurt > 0) f = art.pain;
       else f = art.walk[Math.floor((m.animT || 0) * WALK_FPS * Math.min(1.6, Math.max(0.7, m.speed))) % art.walk.length];
-      list.push({ x: m.x, y: m.y, tex: art.frames[f], hurt: !m.dead && m.hurt > 0, mon: true, k: art.k });
+      list.push({ x: m.x, y: m.y, tex: art.frames[f], hurt: !m.dead && m.hurt > 0, mon: true, k: art.k,
+        lift: m.fly && !m.dead ? 0.03 * Math.sin((m.animT || 0) * 3 + m.ph) : 0 });
     } else if (!m.dead) list.push({ x: m.x, y: m.y, tex: m.tex, hurt: m.hurt > 0, v: m.boss ? 0.05 : 0.12, scale: m.scale });
   }
   for (const it of items) if (!it.taken) list.push({ x: it.x, y: it.y, tex: SPR[it.kind === 'drop' ? 'ammo' : it.kind], hurt: false, v: it.kind === 'drop' ? 0.38 : 0.3, scale: it.kind === 'drop' ? 0.5 : 0.8 });
-  for (const s of shots) list.push({ x: s.x, y: s.y, tex: SPR.fire, hurt: false, v: 0, scale: 0.5 });
+  for (const s of shots) {
+    const art = SHOT_PX[s.kind];
+    if (art) list.push({ x: s.x, y: s.y, tex: art.frames[Math.floor(s.t * 10) % art.frames.length], hurt: false, mon: true, k: art.k, lift: 0 });
+    else list.push({ x: s.x, y: s.y, tex: SPR.fire, hurt: false, v: 0, scale: 0.5 });
+  }
   for (const s of pshots) {
     if (s.kind === 'arrow') continue;                // bolts are drawn along their flight path by drawArrowShots()
     const tex = s.kind === 'boom' ? SPR.fire : SPR.magic;
@@ -1420,7 +1513,7 @@ function drawMonsterSprite(s, tx, ty) {
   const t = s.tex, u = RH / ty * s.k, hpx = t.h * u, wpx = t.w * u;      // u: screen pixels per sprite pixel
   if (hpx < 1) return;
   const scrX = (RW / 2) * (1 + tx / ty);
-  const top = RH / 2 + RH / (2 * ty) - t.oy * u, bottom = top + hpx, x0 = scrX - t.ox * u;
+  const top = RH / 2 + RH / (2 * ty) - t.oy * u - (s.lift || 0) * RH / ty, bottom = top + hpx, x0 = scrX - t.ox * u;
   const fog = Math.max(0.12, 1 - ty / 12);
   const ys = Math.max(0, Math.floor(top)), ye = Math.min(RH - 1, Math.floor(bottom));
   for (let x = Math.max(0, Math.floor(x0)); x < Math.min(RW, Math.ceil(x0 + wpx)); x++) {

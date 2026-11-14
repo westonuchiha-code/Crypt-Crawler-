@@ -31,4 +31,14 @@ CAST = {
     'boss9':  ('f', 'vile', 2.00, 'ABC',    'GHIJKLMNOP', 'Q', 'RSTUVWXYZ'),    # the Star-Eater
     'boss10': ('f', 'cybr', 2.40, 'ABCD',   'EF',   'G',  'HIJKLMNOP'),         # the Spire Titan
 }
+# Enemy projectiles: name -> (set, the two flight frames, height in wall heights). Which enemy throws which is in
+# index.html (KIND table, `shot:`). Packed as window.SHOTS.
+SHOTS = {
+    'fire':   ('f', ['bal1a0', 'bal1b0'], 0.20),       # serpentipede fireball
+    'spit':   ('f', ['bal2a0', 'bal2b0'], 0.20),       # trilobite / mutant spit
+    'heavy':  ('f', ['bal7a1a5', 'bal7b1b5'], 0.26),   # brute's bolt, most bosses
+    'blob':   ('f', ['manfa1', 'manfb1'], 0.30),       # the horror's cannon shots
+    'bolt':   ('f', ['plssa0', 'plssb0'], 0.18),       # wizard's and the Archon's energy bolts
+    'rocket': ('f', ['fatba1', 'fatbb1'], 0.24),       # the Titan
+}
 SETS = {'f': 'freedoom', 'b': 'blasphemer'}

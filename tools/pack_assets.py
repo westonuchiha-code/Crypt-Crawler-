@@ -196,7 +196,7 @@ with open(out, 'w') as fh:
     # window.MONSTERS[kind] = { k: wall heights per sprite pixel, walk/atk/die: frame indexes, pain: index,
     #                           frames: [[png data uri, origin x, origin y], ...] }; the origin stands on the floor.
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from enemy_cast import CAST, SETS
+    from enemy_cast import CAST, SETS, SHOTS
     mons, offs = {}, {}
     for sname in SETS.values():
         for line in open(os.path.join(ROOT, 'art', 'enemies', sname, 'offsets.txt')):
@@ -221,6 +221,13 @@ with open(out, 'w') as fh:
         mons[kind] = {'k': round(tall / frames[w[0]][3], 5), 'walk': w, 'atk': a, 'pain': pn[0], 'die': d,
                       'frames': [f[:3] for f in frames]}
     print('monsters', len(mons), 'kinds,', sum(len(m['frames']) for m in mons.values()), 'frames')
+    shots = {}
+    for name, (sset, files, tall) in SHOTS.items():
+        ims = [Image.open(os.path.join(ROOT, 'art', 'enemies', SETS[sset], f + '.png')).convert('RGBA') for f in files]
+        ims = [im.crop(im.getbbox()) for im in ims]
+        for im in ims: im.putalpha(im.getchannel('A').point(lambda a: 255 if a >= 128 else 0))
+        shots[name] = {'k': round(tall / ims[0].height, 5), 'frames': [pal_uri(im) for im in ims]}
+    fh.write('window.SHOTS = ' + json.dumps(shots) + ';\n')
     fh.write('window.MONSTERS = ' + json.dumps(mons) + ';\n')
 print('wrote', out, os.path.getsize(out) // 1024, 'KB')
 

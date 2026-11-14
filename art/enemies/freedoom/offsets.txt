@@ -191,3 +191,15 @@ vilew0 45 68
 vilex0 44 67
 viley0 43 41
 vilez0 46 24
+bal1a0 8 11
+bal1b0 8 11
+bal2a0 8 8
+bal2b0 8 8
+bal7a1a5 10 18
+bal7b1b5 10 18
+manfa1 17 19
+manfb1 17 20
+plssa0 9 12
+plssb0 9 12
+fatba1 11 16
+fatbb1 11 16
