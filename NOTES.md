@@ -356,3 +356,16 @@ floor; Star-Eater and Spire Titan moves eased.
 - Colours: `opts.pal` ('normal' / 'contrast', button `#optpal`). The contrast set avoids red-versus-green pairs on the
   map and makes the hit wedge yellow. The health bar and the red damage tint are unchanged.
 - `cycleWeapon(dir)` takes a direction; the mouse wheel now goes both ways.
+
+## Infighting, killing sprees, start-up measured (2026-11-15)
+- Infighting: enemy shots carry `owner` and hit other enemies (never their own kind); `monsterHurt(o, dmg, by)` damages
+  the victim and gives it a 6 s `grudge` against the shooter. In `updateMonsters` an enemy's target `T` is its grudge or
+  the player; melee and shots (`m.foe`) follow it. Bosses never hold grudges. Pods caught in crossfire burst.
+- Death handling moved to `killMonster(m, byPlayer)`; enemy-on-enemy kills do not count as yours.
+- Killing spree: three or more of your kills within 3.5 s of each other heal 3 health per kill (`streak`, `lastKillT`).
+- Start-up was measured, not changed: on a CPU throttled 6x, all script evaluation takes about 340 ms (three.js 156 ms,
+  the art and sound files 2 ms each because the browser parses them lazily); decoding all sounds takes about 0.25 s
+  after the first click. Download size is the only real cost.
+- Balance after infighting and the smarter bot: the average bot stopped dying on normal, so `dmgMul` went to 12.5% per
+  zone and enemy counts grow a little faster. It still finishes normal without dying (damage per floor ~40% of max
+  health in zone 10); hard is the mode that kills it. Weak bot: about one death at the floor 40 boss per climb.

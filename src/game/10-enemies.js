@@ -1,9 +1,10 @@
 // ---------- enemies: their shots, boss moves, the chase map and the AI ----------
 // One enemy projectile from m, `off` radians away from the line to the player (or at absolute angle `abs`).
 function spawnShot(m, off = 0, dmgMulBy = 1, abs = null) {
-  const a = abs === null ? Math.atan2(P.y - m.y, P.x - m.x) + off : abs;
+  const T = m.foe || P;                                       // whoever it is fighting: you, or an enemy it has a grudge against
+  const a = abs === null ? Math.atan2(T.y - m.y, T.x - m.x) + off : abs;
   const sp = m.boss ? 4.2 : 3.2;
-  shots.push({ x: m.x, y: m.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 4, kind: m.shot, t: 0,
+  shots.push({ x: m.x, y: m.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 4, kind: m.shot, t: 0, owner: m,
     dmg: Math.max(1, Math.round((m.boss ? (6 + 1.4 * zoneOf(level)) * bossDmgK() : m.dmg) * dmgMulBy)) });   // bosses: 8 melee / 6 a shot in the crypt, 22 / 19 at the top   // a regular enemy's shot hits as hard as its claws
 }
 // A volley at the player: `burst` shots fanned out.
@@ -45,7 +46,11 @@ function updateShots(dt) {
   for (const s of shots) {
     s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; s.t += dt;
     if (solid(s.x, s.y)) { s.life = -1; continue; }
-    if (Math.hypot(s.x - P.x, s.y - P.y) < 0.4) { s.life = -1; sfx('eboom', 0.7); hurtPlayer(s.dmg, s.x - s.vx, s.y - s.vy); }
+    if (Math.hypot(s.x - P.x, s.y - P.y) < 0.4) { s.life = -1; sfx('eboom', 0.7); hurtPlayer(s.dmg, s.x - s.vx, s.y - s.vy); continue; }
+    if (s.owner) for (const o of monsters) {                  // enemy shots hit other enemies too (never their own kind)
+      if (o.dead || o === s.owner || o.kind === s.owner.kind || Math.hypot(o.x - s.x, o.y - s.y) > (o.boss ? 0.5 : 0.3)) continue;
+      s.life = -1; monsterHurt(o, s.dmg, s.owner); break;
+    }
   }
   shots = shots.filter(s => s.life > 0);
 }
@@ -79,14 +84,17 @@ function updateMonsters(dt) {
       if (Math.abs(m.kbx) + Math.abs(m.kby) < 0.05) m.kbx = m.kby = 0;
     }
     if (m.stun > 0) { m.stun -= dt; continue; }             // stunned: no moving or attacking
-    const ex = P.x - m.x, ey = P.y - m.y, d = Math.hypot(ex, ey) || 1;
+    if (m.grudge && (m.grudge.dead || (m.grudgeT -= dt) <= 0 || !los(m.x, m.y, m.grudge.x, m.grudge.y))) m.grudge = null;
+    const T = m.grudge || P; m.foe = m.grudge;                 // its target this frame
+    const hit = () => { if (T === P) hurtPlayer(m.dmg, m.x, m.y); else monsterHurt(T, m.dmg, m); };
+    const ex = T.x - m.x, ey = T.y - m.y, d = Math.hypot(ex, ey) || 1;
     const spd = (0.85 + 0.04 * zoneOf(level) + 0.01 * ((level - 1) % 10)) * m.speed * dt;
     if (m.lungeT > 0) {                                     // mid-charge: straight on, three times as fast
       m.lungeT -= dt; moveEnt(m, m.lx * spd * 3, m.ly * spd * 3);
-      if (d <= (m.boss ? 1.6 : 1.0) && m.mcool <= 0) { m.mcool = 1.0; m.atk = ATK_T; m.lungeT = 0; msnd(m, 'atk'); hurtPlayer(m.dmg, m.x, m.y); }
+      if (d <= (m.boss ? 1.6 : 1.0) && m.mcool <= 0) { m.mcool = 1.0; m.atk = ATK_T; m.lungeT = 0; msnd(m, 'atk'); hit(); }
       continue;
     }
-    if (d < 11 && los(m.x, m.y, P.x, P.y)) {
+    if (d < 11 && los(m.x, m.y, T.x, T.y)) {
       if (!m.woke) { m.woke = true; msnd(m, 'see'); }       // first sight of you: its alert cry
       if (m.boss) bossMoves(m, dt, d);
       if (m.ranged && m.rcool <= 0 && d > 2.2) {
@@ -101,7 +109,7 @@ function updateMonsters(dt) {
       const dir = d > Math.max(reach, m.keep) ? 1 : (m.keep && d < m.keep - 1.2 ? -0.6 : 0);   // close in, hold, or back off
       const wv = m.weave ? Math.sin(m.animT * 2.2 + m.ph) * m.weave : 0;                       // sideways drift
       if (dir || wv) moveEnt(m, (ex / d * dir - ey / d * wv) * spd, (ey / d * dir + ex / d * wv) * spd);
-      if (d <= (m.boss ? 1.6 : 1.0) && m.mcool <= 0) { m.mcool = 1.0; m.atk = ATK_T; msnd(m, 'atk'); hurtPlayer(m.dmg, m.x, m.y); }
+      if (d <= (m.boss ? 1.6 : 1.0) && m.mcool <= 0) { m.mcool = 1.0; m.atk = ATK_T; msnd(m, 'atk'); hit(); }
     } else if (m.woke && flow[Math.floor(m.y) * W + Math.floor(m.x)] > 0) {   // lost sight of you: follow the chase map
       const c = Math.floor(m.y) * W + Math.floor(m.x); let best = c;
       for (const n of [c + 1, c - 1, c + W, c - W]) if (flow[n] >= 0 && flow[n] < flow[best]) best = n;

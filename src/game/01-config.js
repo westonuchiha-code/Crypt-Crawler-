@@ -39,7 +39,7 @@ const wpnMul = lv => 1 + 0.1 * zoneOf(lv);                          // your weap
 const ARMOUR_MAX = 100, ARMOUR_PICKUP = 50, ARMOUR_SOAK = 0.5;      // armour takes half of each hit until it is gone
 const FURY_TIME = 20, WARD_TIME = 8;                                // double damage / cannot be hurt, in seconds
 let floorAmmo = 1;                                                  // this floor's ammo multiplier, set in generate()
-const dmgMul = lv => (1 + 0.10 * zoneOf(lv)) * DF().dmg;
+const dmgMul = lv => (1 + 0.125 * zoneOf(lv)) * DF().dmg;
 // Damage is [min, max] per hit, before the zone bonus (wpnMul). knock = shove back (cells), stun = seconds the enemy
 // cannot move or attack; bosses take 20% knock and 30% stun. One job each:
 //  fist      always there: weak, but shoves and staggers so you can make space

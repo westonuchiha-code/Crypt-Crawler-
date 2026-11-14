@@ -80,17 +80,37 @@ function hurtMonster(m, dmg, knock = 0, stun = 0, fx = P.x, fy = P.y) {
     if (pd < 2.2) hurtPlayer(Math.round(30 * dmgMul(level) * (1 - pd / 2.6)), m.x, m.y);
     return;
   }
-  if (m.hp <= 0) {
-    m.dead = true; m.dieT = 0; m.art = monArtKey(m); kills++; msnd(m, 'die');
-    // enemies sometimes drop a little ammo; bosses always leave a weapon crate and an ammo box
-    if (m.boss) { items.push({ x: m.x, y: m.y, kind: 'crate', taken: false }, { x: m.x + 0.3, y: m.y, kind: 'ammo', taken: false }, { x: m.x - 0.3, y: m.y, kind: 'armour', taken: false }); }
-    else if (Math.random() < 0.3) items.push({ x: m.x, y: m.y, kind: 'drop', taken: false });
-    if (m.boss) {
-      if (level === 10) unlock('boss1'); if (level === 50) unlock('boss5'); if (P.weapon === 'fist') unlock('fists');
-      if (level >= FINAL) pendingWin = 1.5;
-      else showMsg(`${m.name} falls! The stairs unseal.`);
-    } else showMsg('Slain!');
+  if (m.hp <= 0) killMonster(m, true);
+}
+// An enemy dies. byPlayer: it counts as your kill (and feeds a killing spree); enemies can also kill each other.
+let streak = 0, lastKillT = -99;
+function killMonster(m, byPlayer) {
+  m.dead = true; m.dieT = 0; m.art = monArtKey(m); msnd(m, 'die');
+  // enemies sometimes drop a little ammo; bosses always leave a weapon cache, an ammo chest and armour
+  if (m.boss) { items.push({ x: m.x, y: m.y, kind: 'crate', taken: false }, { x: m.x + 0.3, y: m.y, kind: 'ammo', taken: false }, { x: m.x - 0.3, y: m.y, kind: 'armour', taken: false }); }
+  else if (Math.random() < 0.3) items.push({ x: m.x, y: m.y, kind: 'drop', taken: false });
+  if (byPlayer) {
+    kills++;
+    streak = runT - lastKillT < 3.5 ? streak + 1 : 1; lastKillT = runT;      // three or more kills in quick succession: a spree
+    if (!m.boss) {
+      if (streak >= 3) { P.hp = Math.min(P.maxHp, P.hp + 3); showMsg(`Killing spree ×${streak} · +3 health`); }
+      else showMsg('Slain!');
+    }
   }
+  if (m.boss) {
+    if (level === 10) unlock('boss1'); if (level === 50) unlock('boss5'); if (byPlayer && P.weapon === 'fist') unlock('fists');
+    if (level >= FINAL) pendingWin = 1.5;
+    else showMsg(`${m.name} falls! The stairs unseal.`);
+  }
+}
+// One enemy hurts another (a stray shot, or a grudge being settled). The victim turns on whoever did it for a while.
+function monsterHurt(o, dmg, by) {
+  if (o.dead) return;
+  if (o.prop) { hurtMonster(o, 99); return; }                // a pod caught in the crossfire bursts
+  o.hp -= dmg; o.hurt = 0.15;
+  if (o.hp <= 0) { killMonster(o, false); return; }
+  if (Math.random() < 0.5) msnd(o, 'pain', 0.6);
+  if (by && by !== o && !by.dead && !o.boss) { o.grudge = by; o.grudgeT = 6; o.woke = true; }
 }
 function hitscan(ang, w) {
   const dx = Math.cos(ang), dy = Math.sin(ang);

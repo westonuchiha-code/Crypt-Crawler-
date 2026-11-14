@@ -307,7 +307,7 @@ function generate(lv) {
     monsters.push(spawnMonster(bx, by, 'boss', lv));
   }
 
-  const nm = Math.round(Math.min(20, 5 + ((lv - 1) % 10) * 0.6 + zoneOf(lv) * 1.1) * (BOSS_NAMES[lv] ? 0.6 : 1));   // fewer on a boss floor: the boss is the fight   // ramps inside each zone, and zone by zone
+  const nm = Math.round(Math.min(20, 5 + ((lv - 1) % 10) * 0.6 + zoneOf(lv) * 1.3) * (BOSS_NAMES[lv] ? 0.6 : 1));   // fewer on a boss floor: the boss is the fight   // ramps inside each zone, and zone by zone
   // Most enemies come in packs of 2-4 sharing a room (a mix from the zone's roster); about a quarter roam alone.
   const inRoom = r => free.filter(c => { const x = c % W, y = (c / W) | 0; return x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1; });
   const packRooms = rooms.slice(1).filter(r => !r.arena);
