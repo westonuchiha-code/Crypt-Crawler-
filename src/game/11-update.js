@@ -85,6 +85,7 @@ function update(dt) {
       else if (lockMsgT <= 0) { lockMsgT = 2.5; sfx('noway'); showMsg('Locked. The key is somewhere on this floor'); }
     } else if (t === SECRET) {
       map[at] = 0; secrets.found++; sfx('power'); showMsg(`A secret room! (${secrets.found} of ${secrets.total})`);
+      if (secrets.total >= 2 && secrets.found === secrets.total) unlock('secrets');
     }
   }
   if (level === 0) {

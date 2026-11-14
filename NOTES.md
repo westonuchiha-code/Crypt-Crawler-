@@ -314,3 +314,14 @@ floor; Star-Eater and Spire Titan moves eased.
   three.js, art and sounds all load and the pad is absent. No installer has been built or tried on Windows or macOS.
 - Hard difficulty: bosses now hit 18% harder (not 30%) and keep normal health. Bot, final zone on hard, three runs:
   14 deaths at the final boss before, 1 after (the bot's results swing a lot between runs, so treat that loosely).
+
+## Weapon retune from bot data, enemy packs, achievements (2026-11-15)
+- tools/bot.py now also prints a weapon table: shots, damage per shot (zone bonus divided out), the `AMMO_DMG` the game
+  assumed, damage per second while in use, share of fight time, kills. First run showed big gaps (phoenix 23 vs 40
+  assumed, claw 13 vs 25, hellstaff 8.7 vs 13, rocket 67 vs 110), i.e. floors held much less usable ammo than intended.
+- Fixes: phoenix rod, dragon claw, hellstaff, plasma rifle and rocket launcher buffed (numbers in `WEAPONS`); `AMMO_DMG`
+  set to the measured values. After: measured and assumed agree within ~10% for every gun except the Big One (rarely fired).
+- Enemies spawn in packs: 75% of placements are groups of 2-4 in one room, the rest roam alone (84% of enemies now have
+  another within 5 cells). Bot curve unchanged: deaths only at bosses.
+- Achievements: `ACH` table and `unlock(id)` in 08-menus-and-saves.js, stored in `cc_stats.ach`, listed at the bottom of
+  the records panel, announced with a message. `zoneDeaths` backs "Untouchable" (it is not saved across a reload).

@@ -30,6 +30,22 @@ let menuShownAt = performance.now(), paused = false, summary = false, lockDropT 
 // ---- zone results: shown when you take the stairs after a boss; PRESS START carries on to the next zone ----
 let zoneStat = { t: 0, kills0: 0, hurt: 0, secrets: 0, secretsAll: 0 }, runT = 0;
 // lifetime records, localStorage 'cc_stats': counters plus the best time for each zone and for a whole climb
+// Achievements: kept with the lifetime records (cc_stats.ach = { id: when }); a line on screen when one unlocks.
+const ACH = {
+  boss1: ['Gravebreaker', 'Defeat the Warden'], boss5: ['Halfway up', 'Defeat the Forgeheart'], win: ['Spire conquered', 'Reach the other world'],
+  hard: ['Glutton for punishment', 'Finish the climb on hard'], flawless: ['Untouchable', 'Clear a whole zone without dying'],
+  sprint: ['Sprinter', 'Clear a zone in under eight minutes'], secrets: ['Nosy', 'Find every secret on a floor that hides two'],
+  fists: ['Bare knuckles', 'Land the killing blow on a boss with your fists'], pod: ['Chain reaction', 'Kill three enemies with one pod'],
+  armed: ['Fully armed', 'Carry all nine guns at once'], slayer: ['Slayer', 'Slay a thousand enemies in total']
+};
+let zoneDeaths = 0;                                            // deaths since this zone began (not reset by a retry)
+function unlock(id) {
+  const s = loadStats(); s.ach = s.ach || {};
+  if (s.ach[id] || !ACH[id]) return;
+  s.ach[id] = Date.now();
+  try { localStorage.setItem('cc_stats', JSON.stringify(s)); } catch (e) {}
+  sfx('power'); showMsg(`Achievement · ${ACH[id][0]}`);
+}
 function loadStats() { try { return Object.assign({ deaths: 0, kills: 0, secrets: 0, wins: 0, zoneBest: [], runBest: 0 }, JSON.parse(localStorage.getItem('cc_stats')) || {}); } catch (e) { return { deaths: 0, kills: 0, secrets: 0, wins: 0, zoneBest: [], runBest: 0 }; } }
 function bumpStats(add, zone, zoneTime, runTime) {
   const s = loadStats();
@@ -37,18 +53,23 @@ function bumpStats(add, zone, zoneTime, runTime) {
   if (zone !== undefined && (!s.zoneBest[zone] || zoneTime < s.zoneBest[zone])) s.zoneBest[zone] = Math.round(zoneTime);
   if (runTime && (!s.runBest || runTime < s.runBest)) s.runBest = Math.round(runTime);
   try { localStorage.setItem('cc_stats', JSON.stringify(s)); } catch (e) {}
+  if (s.kills >= 1000) unlock('slayer');
 }
 function showRecords(on) {
   const s = loadStats(), b = loadBest(), row = (a, v) => `<tr><td>${a}</td><td>${v}</td></tr>`;
   $('rectable').innerHTML = row('Highest floor', b.floor || '-') + row('Climbs completed', s.wins) + row('Fastest climb', s.runBest ? clock(s.runBest) : '-')
     + row('Enemies slain', s.kills) + row('Secrets found', s.secrets) + row('Deaths', s.deaths)
-    + ZONES.map((z, i) => row(`Best time · ${z.name}`, s.zoneBest[i] ? clock(s.zoneBest[i]) : '-')).join('');
+    + ZONES.map((z, i) => row(`Best time · ${z.name}`, s.zoneBest[i] ? clock(s.zoneBest[i]) : '-')).join('')
+    + `<tr><td colspan="2" style="padding-top:14px;color:#ff8a3a;letter-spacing:3px">ACHIEVEMENTS ${Object.keys(s.ach || {}).length} OF ${Object.keys(ACH).length}</td></tr>`
+    + Object.keys(ACH).map(id => row(`${ACH[id][0]} · <span style="color:#8a8078">${ACH[id][1]}</span>`, (s.ach || {})[id] ? '✓' : '')).join('');
   $('recpanel').classList.toggle('on', on); menuShownAt = performance.now();
 }
 const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 function showSummary() {
   const z = ZONES[zoneOf(level)];
   bumpStats({ kills: kills - zoneStat.kills0, secrets: zoneStat.secrets }, zoneOf(level), zoneStat.t);
+  if (zoneDeaths === 0) unlock('flawless');
+  if (zoneStat.t < 480) unlock('sprint');
   showMenu(`${z.name.replace(/^THE /, '')} CLEARED`,
     `${z.boss} is dead · time ${clock(zoneStat.t)} · ${kills - zoneStat.kills0} slain · secrets ${zoneStat.secrets} of ${zoneStat.secretsAll} · damage taken ${Math.round(zoneStat.hurt)}`,
     `PRESS START · ${ZONES[zoneOf(level + 1)].name}`);
@@ -70,12 +91,13 @@ function resumeGame() {
   try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
 }
 function die() {
-  sfx('death'); clearResume(); bumpStats({ deaths: 1 });
+  sfx('death'); clearResume(); bumpStats({ deaths: 1 }); zoneDeaths++;
   const rec = saveBest(), cp = loadCheckpoint();
   showMenu('GAME OVER', `${rec ? 'NEW RECORD! ' : ''}Fell on floor ${level} · ${kills} slain`,
     cp ? `CONTINUE FROM FLOOR ${cp.floor}? PRESS START` : 'CONTINUE? PRESS START', true);
 }
 function victory() {
+  unlock('win'); if (opts.diff === 'hard') unlock('hard'); if (zoneDeaths === 0) unlock('flawless');
   saveBest(); clearCheckpoint(); bumpStats({ wins: 1, kills: kills - zoneStat.kills0, secrets: zoneStat.secrets + secrets.found }, zoneOf(level), zoneStat.t, runT);
   if (typeof THREE !== 'undefined') { try { startEnding(); return; } catch (e) { endActive = false; } }   // no Three.js / WebGL: straight to the menu
   victoryMenu();
@@ -99,7 +121,7 @@ function clearCheckpoint() { try { localStorage.removeItem('cc_save'); } catch (
 function nextLevel(afterSummary) {
   zoneStat.secrets += secrets.found; zoneStat.secretsAll += secrets.total; secrets = { total: 0, found: 0 };
   if (level > 0 && level % 10 === 0 && level < FINAL && !afterSummary) { showSummary(); return; }
-  if (level % 10 === 0) zoneStat = { t: 0, kills0: kills, hurt: 0, secrets: 0, secretsAll: 0 };
+  if (level % 10 === 0) { zoneStat = { t: 0, kills0: kills, hurt: 0, secrets: 0, secretsAll: 0 }; zoneDeaths = 0; }
   level++; setMusic(MUSIC_FOR(level));
   sfx(level === 1 ? 'door' : 'stairs');
   P.maxHp = zoneMaxHp(level);

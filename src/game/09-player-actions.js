@@ -13,6 +13,7 @@ function giveWeapon(w) {
   const n = Math.round(CRATE_AMMO[w] * floorAmmo);
   P.owned[w] = true; P.ammo[w] += n;
   if (!had) P.weapon = w;
+  if (Object.keys(WEAPON_FLOOR).every(g => P.owned[g])) unlock('armed');
   showMsg(had ? `${WEAPONS[w].name}: +${n} ${AMMO_NAME[w]}` : `Found the ${WEAPONS[w].name}!`);
 }
 function pickupItem(kind) {
@@ -72,7 +73,9 @@ function hurtMonster(m, dmg, knock = 0, stun = 0, fx = P.x, fy = P.y) {
   if (m.hp <= 0 && m.prop) {                                 // a pod bursts: hurts everything close, you included
     m.dead = true; m.dieT = 0; m.art = monArtKey(m); sfxAt('bigboom', m.x, m.y);
     pshots.push({ kind: 'boom', x: m.x, y: m.y, vx: 0, vy: 0, life: 0.25, static: true, dead: false, size: 2.2 });
+    const k0 = kills;
     for (const o of monsters) if (!o.dead && Math.hypot(o.x - m.x, o.y - m.y) < 2.2) hurtMonster(o, 70, 1.2, 0.3, m.x, m.y);
+    if (kills - k0 >= 3) unlock('pod');
     const pd = Math.hypot(P.x - m.x, P.y - m.y);
     if (pd < 2.2) hurtPlayer(Math.round(30 * dmgMul(level) * (1 - pd / 2.6)), m.x, m.y);
     return;
@@ -83,6 +86,7 @@ function hurtMonster(m, dmg, knock = 0, stun = 0, fx = P.x, fy = P.y) {
     if (m.boss) { items.push({ x: m.x, y: m.y, kind: 'crate', taken: false }, { x: m.x + 0.3, y: m.y, kind: 'ammo', taken: false }, { x: m.x - 0.3, y: m.y, kind: 'armour', taken: false }); }
     else if (Math.random() < 0.3) items.push({ x: m.x, y: m.y, kind: 'drop', taken: false });
     if (m.boss) {
+      if (level === 10) unlock('boss1'); if (level === 50) unlock('boss5'); if (P.weapon === 'fist') unlock('fists');
       if (level >= FINAL) pendingWin = 1.5;
       else showMsg(`${m.name} falls! The stairs unseal.`);
     } else showMsg('Slain!');

@@ -5,7 +5,7 @@
 // a prediction of how a person will do.
 window.__bot = (function () {
   const DT = 1 / 30, D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-  const S = { deathFloors: {}, zones: [], t: 0, floorT: 0, zoneDeaths: 0, done: false, log: [] };
+  const S = { weapons: {}, deathFloors: {}, zones: [], t: 0, floorT: 0, zoneDeaths: 0, done: false, log: [] };
   const Z = () => (S.zones[zoneOf(Math.max(1, level))] = S.zones[zoneOf(Math.max(1, level))] ||
     { deaths: 0, floors: 0, time: 0, endHp: 0, fistTicks: 0, fightTicks: 0, timeouts: 0, assists: 0, dmgTaken: 0 });
   // skill profiles: 'average' strafes, backs off and picks guns well; 'weak' turns slowly, aims worse, never sidesteps and
@@ -13,6 +13,19 @@ window.__bot = (function () {
   let SK = { turn: 5, err: 0.04, strafe: true, retreat: true, smart: true };
   let path = [], pathT = 0, strafe = 1, strafeT = 0, wpnT = 0, lastX = 0, lastY = 0, stuckT = 0, lastHp = 100, assist = false;
 
+  // per-weapon tally: shots fired, damage dealt (with the zone bonus and fury divided out, so it compares with AMMO_DMG),
+  // kills, and ticks spent fighting with it in hand
+  const WS = w => (S.weapons[w] = S.weapons[w] || { shots: 0, dmg: 0, kills: 0, ticks: 0 });
+  const _hurt = hurtMonster, _fire = fire;
+  hurtMonster = function (m, ...rest) {
+    const hp0 = m.hp, dead0 = m.dead; _hurt(m, ...rest);
+    if (m.prop) return;
+    const w = WS(P.weapon); w.dmg += (Math.min(hp0, hp0 - m.hp)) / (wpnMul(level) * (P.fury > 0 ? 2 : 1)); if (m.dead && !dead0) w.kills++;
+  };
+  fire = function () {
+    const w = P.weapon, a0 = WEAPONS[w].ammo ? P.ammo[w] : null, f0 = P.fire; _fire();
+    if (a0 !== null ? P.ammo[w] < a0 : P.fire > f0) WS(w).shots++;
+  };
   function bfs(goalFn, viaStairs) {                         // shortest path of cells from the player to the nearest goal cell
     const sx = Math.floor(P.x), sy = Math.floor(P.y), start = sy * W + sx;
     const prev = new Int32Array(W * H).fill(-1), q = [start]; prev[start] = start;
@@ -64,7 +77,7 @@ window.__bot = (function () {
       foes.sort((a, b) => Math.hypot(a.x - P.x, a.y - P.y) - Math.hypot(b.x - P.x, b.y - P.y));
       const t = foes[0], d = Math.hypot(t.x - P.x, t.y - P.y);
       if ((wpnT -= DT) <= 0) { wpnT = 0.5; if (SK.smart || !P.owned[P.weapon] || (P.weapon !== 'fist' && P.ammo[P.weapon] <= 0) || P.weapon === 'fist') P.weapon = pickWeapon(d, SK.smart ? foes.length : 1, t); }
-      const fist = P.weapon === 'fist'; z.fightTicks++; if (fist) z.fistTicks++;
+      const fist = P.weapon === 'fist'; z.fightTicks++; if (fist) z.fistTicks++; WS(P.weapon).ticks++;
       const err = turnTo(Math.atan2(t.y - P.y, t.x - P.x) + Math.sin(S.t * 3.1) * SK.err, SK.turn);
       if (err < (d < 3 ? 0.25 : 0.1) && (!fist || d < 1.4)) fire();
       if (fist) keys.KeyW = d > 1.1;
@@ -127,6 +140,6 @@ window.__bot = (function () {
       nextLevel(); lastHp = P.hp;
     },
     run(ticks) { for (let i = 0; i < ticks && !S.done; i++) tick(); return { level, done: S.done, t: Math.round(S.t) }; },
-    report() { return JSON.stringify({ deathFloors: S.deathFloors, zones: S.zones, log: S.log.slice(0, 30), secs: Math.round(S.t) }); }
+    report() { return JSON.stringify({ weapons: S.weapons, ammoDmg: AMMO_DMG, cool: Object.fromEntries(Object.keys(WEAPONS).map(w => [w, WEAPONS[w].cool])), deathFloors: S.deathFloors, zones: S.zones, log: S.log.slice(0, 30), secs: Math.round(S.t) }); }
   };
 })();

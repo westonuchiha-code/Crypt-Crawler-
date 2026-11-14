@@ -308,10 +308,18 @@ function generate(lv) {
   }
 
   const nm = Math.round(Math.min(20, 5 + ((lv - 1) % 10) * 0.6 + zoneOf(lv) * 1.1) * (BOSS_NAMES[lv] ? 0.6 : 1));   // fewer on a boss floor: the boss is the fight   // ramps inside each zone, and zone by zone
-  for (let i = 0; i < nm && free.length; i++) {
-    const [x, y] = cellXY(take());
-    const kind = pickKind(lv);
-    monsters.push(spawnMonster(x, y, kind, lv));
+  // Most enemies come in packs of 2-4 sharing a room (a mix from the zone's roster); about a quarter roam alone.
+  const inRoom = r => free.filter(c => { const x = c % W, y = (c / W) | 0; return x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1; });
+  const packRooms = rooms.slice(1).filter(r => !r.arena);
+  for (let left = nm; left > 0 && free.length;) {
+    const cells = packRooms.length && Math.random() < 0.75 ? inRoom(packRooms[(Math.random() * packRooms.length) | 0]) : [];
+    const size = cells.length >= 2 ? Math.min(left, cells.length, 2 + ((Math.random() * 3) | 0)) : 1;
+    for (let k = 0; k < size; k++, left--) {
+      let c;
+      if (size > 1) { c = cells.splice((Math.random() * cells.length) | 0, 1)[0]; free.splice(free.indexOf(c), 1); } else c = take();
+      const [x, y] = cellXY(c);
+      monsters.push(spawnMonster(x, y, pickKind(lv), lv));
+    }
   }
 
   for (let i = 0, n = lv >= 5 ? (Math.random() * 4) | 0 : 0; i < n && free.length; i++) {   // explosive pods

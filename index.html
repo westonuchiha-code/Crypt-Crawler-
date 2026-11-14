@@ -262,7 +262,7 @@ const zoneMaxHp = lv => 100 + 10 * zoneOf(lv);                      // 100 in th
 const potionHeal = lv => 35 + 4 * zoneOf(lv);
 const potionCount = lv => 2 + (zoneOf(lv) >= 3) + (zoneOf(lv) >= 7);
 const AMMO_RATIO = lv => (1.9 - 0.04 * zoneOf(lv)) * DF().ammo;                 // 1.9 ... 1.55
-const AMMO_DMG = { ewand: 12, dshot: 40, phoenix: 40, claw: 25, hstaff: 13, mace: 8, plasma: 12, rocket: 110, bfg: 500 };   // rough damage one unit of ammo deals in real play
+const AMMO_DMG = { ewand: 13, dshot: 38, phoenix: 30, claw: 20, hstaff: 10, mace: 9, plasma: 11, rocket: 78, bfg: 280 };   // damage one unit of ammo really deals, as measured by the test bot (misses and all); sizes each floor's ammo
 const wpnMul = lv => 1 + 0.1 * zoneOf(lv);                          // your weapons hit 10% harder for every zone climbed
 const ARMOUR_MAX = 100, ARMOUR_PICKUP = 50, ARMOUR_SOAK = 0.5;      // armour takes half of each hit until it is gone
 const FURY_TIME = 20, WARD_TIME = 8;                                // double damage / cannot be hurt, in seconds
@@ -284,12 +284,12 @@ const WEAPONS = {
   fist:    { name: 'FIST',            type: 'melee',    cool: 0.55, dmg: [8, 12],  range: 1.5, arc: 0.7, knock: 1.6, stun: 0.45, ammo: false, animDur: 0.5 },
   ewand:   { name: 'ELVEN WAND',      type: 'hitscan',  cool: 0.34, dmg: [10, 14], pellets: 1, spread: 0.01, stun: 0.08, ammo: true, animDur: 0.3 },
   dshot:   { name: 'DOUBLE SHOTGUN',  type: 'hitscan',  cool: 0.95, dmg: [7, 11],  pellets: 7, spread: 0.12, near: 2.5, far: 8, knock: 0.45, stun: 0.12, ammo: true, animDur: 0.9 },
-  phoenix: { name: 'PHOENIX ROD',     type: 'fireball', cool: 0.75, dmg: [26, 34], speed: 6, blast: 1.6, blastDmg: [14, 20], knock: 1.0, ammo: true, animDur: 0.6, spr: 'fire' },
-  claw:    { name: 'DRAGON CLAW',     type: 'chain',    cool: 0.65, dmg: [12, 16], range: 6, arc: 0.35, chain: 2.5, jumps: 3, falloff: 0.75, stun: 0.4, ammo: true, animDur: 0.6 },
-  hstaff:  { name: 'HELLSTAFF',       type: 'pierce',   cool: 0.2,  dmg: [8, 11],  range: 12, stun: 0.05, ammo: true, animDur: 0.2 },
+  phoenix: { name: 'PHOENIX ROD',     type: 'fireball', cool: 0.75, dmg: [30, 40], speed: 8, blast: 1.9, blastDmg: [16, 22], knock: 1.0, ammo: true, animDur: 0.6, spr: 'fire' },
+  claw:    { name: 'DRAGON CLAW',     type: 'chain',    cool: 0.5,  dmg: [16, 22], range: 6, arc: 0.35, chain: 3.2, jumps: 3, falloff: 0.75, stun: 0.4, ammo: true, animDur: 0.6 },
+  hstaff:  { name: 'HELLSTAFF',       type: 'pierce',   cool: 0.2,  dmg: [10, 13], range: 12, stun: 0.05, ammo: true, animDur: 0.2 },
   mace:    { name: 'FIREMACE',        type: 'fireball', cool: 0.16, dmg: [10, 14], speed: 7, spread: 0.1, bounce: 3, life: 2.4, ammo: true, animDur: 0.3, spr: 'spit' },
-  plasma:  { name: 'PLASMA RIFLE',    type: 'fireball', cool: 0.12, dmg: [12, 16], speed: 11, ammo: true, animDur: 0.14, spr: 'bolt' },
-  rocket:  { name: 'ROCKET LAUNCHER', type: 'fireball', cool: 0.9,  dmg: [60, 80], speed: 8, blast: 2.3, blastDmg: [35, 50], knock: 1.6, ammo: true, animDur: 0.6, spr: 'rocket', boom: 'bigboom' },
+  plasma:  { name: 'PLASMA RIFLE',    type: 'fireball', cool: 0.12, dmg: [13, 17], speed: 14, ammo: true, animDur: 0.14, spr: 'bolt' },
+  rocket:  { name: 'ROCKET LAUNCHER', type: 'fireball', cool: 0.9,  dmg: [65, 85], speed: 9, blast: 2.5, blastDmg: [40, 55], knock: 1.6, ammo: true, animDur: 0.6, spr: 'rocket', boom: 'bigboom' },
   bfg:     { name: 'THE BIG ONE',     type: 'nova',     cool: 1.6,  dmg: [150, 210], range: 9, knock: 1.5, ammo: true, animDur: 1.1 }
 };
 // Loot. A weapon cache holds one gun (deeper floors unlock more) plus its starting ammo; an ammo chest stocks every gun
@@ -974,10 +974,18 @@ function generate(lv) {
   }
 
   const nm = Math.round(Math.min(20, 5 + ((lv - 1) % 10) * 0.6 + zoneOf(lv) * 1.1) * (BOSS_NAMES[lv] ? 0.6 : 1));   // fewer on a boss floor: the boss is the fight   // ramps inside each zone, and zone by zone
-  for (let i = 0; i < nm && free.length; i++) {
-    const [x, y] = cellXY(take());
-    const kind = pickKind(lv);
-    monsters.push(spawnMonster(x, y, kind, lv));
+  // Most enemies come in packs of 2-4 sharing a room (a mix from the zone's roster); about a quarter roam alone.
+  const inRoom = r => free.filter(c => { const x = c % W, y = (c / W) | 0; return x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1; });
+  const packRooms = rooms.slice(1).filter(r => !r.arena);
+  for (let left = nm; left > 0 && free.length;) {
+    const cells = packRooms.length && Math.random() < 0.75 ? inRoom(packRooms[(Math.random() * packRooms.length) | 0]) : [];
+    const size = cells.length >= 2 ? Math.min(left, cells.length, 2 + ((Math.random() * 3) | 0)) : 1;
+    for (let k = 0; k < size; k++, left--) {
+      let c;
+      if (size > 1) { c = cells.splice((Math.random() * cells.length) | 0, 1)[0]; free.splice(free.indexOf(c), 1); } else c = take();
+      const [x, y] = cellXY(c);
+      monsters.push(spawnMonster(x, y, pickKind(lv), lv));
+    }
   }
 
   for (let i = 0, n = lv >= 5 ? (Math.random() * 4) | 0 : 0; i < n && free.length; i++) {   // explosive pods
@@ -1103,6 +1111,22 @@ let menuShownAt = performance.now(), paused = false, summary = false, lockDropT 
 // ---- zone results: shown when you take the stairs after a boss; PRESS START carries on to the next zone ----
 let zoneStat = { t: 0, kills0: 0, hurt: 0, secrets: 0, secretsAll: 0 }, runT = 0;
 // lifetime records, localStorage 'cc_stats': counters plus the best time for each zone and for a whole climb
+// Achievements: kept with the lifetime records (cc_stats.ach = { id: when }); a line on screen when one unlocks.
+const ACH = {
+  boss1: ['Gravebreaker', 'Defeat the Warden'], boss5: ['Halfway up', 'Defeat the Forgeheart'], win: ['Spire conquered', 'Reach the other world'],
+  hard: ['Glutton for punishment', 'Finish the climb on hard'], flawless: ['Untouchable', 'Clear a whole zone without dying'],
+  sprint: ['Sprinter', 'Clear a zone in under eight minutes'], secrets: ['Nosy', 'Find every secret on a floor that hides two'],
+  fists: ['Bare knuckles', 'Land the killing blow on a boss with your fists'], pod: ['Chain reaction', 'Kill three enemies with one pod'],
+  armed: ['Fully armed', 'Carry all nine guns at once'], slayer: ['Slayer', 'Slay a thousand enemies in total']
+};
+let zoneDeaths = 0;                                            // deaths since this zone began (not reset by a retry)
+function unlock(id) {
+  const s = loadStats(); s.ach = s.ach || {};
+  if (s.ach[id] || !ACH[id]) return;
+  s.ach[id] = Date.now();
+  try { localStorage.setItem('cc_stats', JSON.stringify(s)); } catch (e) {}
+  sfx('power'); showMsg(`Achievement · ${ACH[id][0]}`);
+}
 function loadStats() { try { return Object.assign({ deaths: 0, kills: 0, secrets: 0, wins: 0, zoneBest: [], runBest: 0 }, JSON.parse(localStorage.getItem('cc_stats')) || {}); } catch (e) { return { deaths: 0, kills: 0, secrets: 0, wins: 0, zoneBest: [], runBest: 0 }; } }
 function bumpStats(add, zone, zoneTime, runTime) {
   const s = loadStats();
@@ -1110,18 +1134,23 @@ function bumpStats(add, zone, zoneTime, runTime) {
   if (zone !== undefined && (!s.zoneBest[zone] || zoneTime < s.zoneBest[zone])) s.zoneBest[zone] = Math.round(zoneTime);
   if (runTime && (!s.runBest || runTime < s.runBest)) s.runBest = Math.round(runTime);
   try { localStorage.setItem('cc_stats', JSON.stringify(s)); } catch (e) {}
+  if (s.kills >= 1000) unlock('slayer');
 }
 function showRecords(on) {
   const s = loadStats(), b = loadBest(), row = (a, v) => `<tr><td>${a}</td><td>${v}</td></tr>`;
   $('rectable').innerHTML = row('Highest floor', b.floor || '-') + row('Climbs completed', s.wins) + row('Fastest climb', s.runBest ? clock(s.runBest) : '-')
     + row('Enemies slain', s.kills) + row('Secrets found', s.secrets) + row('Deaths', s.deaths)
-    + ZONES.map((z, i) => row(`Best time · ${z.name}`, s.zoneBest[i] ? clock(s.zoneBest[i]) : '-')).join('');
+    + ZONES.map((z, i) => row(`Best time · ${z.name}`, s.zoneBest[i] ? clock(s.zoneBest[i]) : '-')).join('')
+    + `<tr><td colspan="2" style="padding-top:14px;color:#ff8a3a;letter-spacing:3px">ACHIEVEMENTS ${Object.keys(s.ach || {}).length} OF ${Object.keys(ACH).length}</td></tr>`
+    + Object.keys(ACH).map(id => row(`${ACH[id][0]} · <span style="color:#8a8078">${ACH[id][1]}</span>`, (s.ach || {})[id] ? '✓' : '')).join('');
   $('recpanel').classList.toggle('on', on); menuShownAt = performance.now();
 }
 const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 function showSummary() {
   const z = ZONES[zoneOf(level)];
   bumpStats({ kills: kills - zoneStat.kills0, secrets: zoneStat.secrets }, zoneOf(level), zoneStat.t);
+  if (zoneDeaths === 0) unlock('flawless');
+  if (zoneStat.t < 480) unlock('sprint');
   showMenu(`${z.name.replace(/^THE /, '')} CLEARED`,
     `${z.boss} is dead · time ${clock(zoneStat.t)} · ${kills - zoneStat.kills0} slain · secrets ${zoneStat.secrets} of ${zoneStat.secretsAll} · damage taken ${Math.round(zoneStat.hurt)}`,
     `PRESS START · ${ZONES[zoneOf(level + 1)].name}`);
@@ -1143,12 +1172,13 @@ function resumeGame() {
   try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
 }
 function die() {
-  sfx('death'); clearResume(); bumpStats({ deaths: 1 });
+  sfx('death'); clearResume(); bumpStats({ deaths: 1 }); zoneDeaths++;
   const rec = saveBest(), cp = loadCheckpoint();
   showMenu('GAME OVER', `${rec ? 'NEW RECORD! ' : ''}Fell on floor ${level} · ${kills} slain`,
     cp ? `CONTINUE FROM FLOOR ${cp.floor}? PRESS START` : 'CONTINUE? PRESS START', true);
 }
 function victory() {
+  unlock('win'); if (opts.diff === 'hard') unlock('hard'); if (zoneDeaths === 0) unlock('flawless');
   saveBest(); clearCheckpoint(); bumpStats({ wins: 1, kills: kills - zoneStat.kills0, secrets: zoneStat.secrets + secrets.found }, zoneOf(level), zoneStat.t, runT);
   if (typeof THREE !== 'undefined') { try { startEnding(); return; } catch (e) { endActive = false; } }   // no Three.js / WebGL: straight to the menu
   victoryMenu();
@@ -1172,7 +1202,7 @@ function clearCheckpoint() { try { localStorage.removeItem('cc_save'); } catch (
 function nextLevel(afterSummary) {
   zoneStat.secrets += secrets.found; zoneStat.secretsAll += secrets.total; secrets = { total: 0, found: 0 };
   if (level > 0 && level % 10 === 0 && level < FINAL && !afterSummary) { showSummary(); return; }
-  if (level % 10 === 0) zoneStat = { t: 0, kills0: kills, hurt: 0, secrets: 0, secretsAll: 0 };
+  if (level % 10 === 0) { zoneStat = { t: 0, kills0: kills, hurt: 0, secrets: 0, secretsAll: 0 }; zoneDeaths = 0; }
   level++; setMusic(MUSIC_FOR(level));
   sfx(level === 1 ? 'door' : 'stairs');
   P.maxHp = zoneMaxHp(level);
@@ -1219,6 +1249,7 @@ function giveWeapon(w) {
   const n = Math.round(CRATE_AMMO[w] * floorAmmo);
   P.owned[w] = true; P.ammo[w] += n;
   if (!had) P.weapon = w;
+  if (Object.keys(WEAPON_FLOOR).every(g => P.owned[g])) unlock('armed');
   showMsg(had ? `${WEAPONS[w].name}: +${n} ${AMMO_NAME[w]}` : `Found the ${WEAPONS[w].name}!`);
 }
 function pickupItem(kind) {
@@ -1278,7 +1309,9 @@ function hurtMonster(m, dmg, knock = 0, stun = 0, fx = P.x, fy = P.y) {
   if (m.hp <= 0 && m.prop) {                                 // a pod bursts: hurts everything close, you included
     m.dead = true; m.dieT = 0; m.art = monArtKey(m); sfxAt('bigboom', m.x, m.y);
     pshots.push({ kind: 'boom', x: m.x, y: m.y, vx: 0, vy: 0, life: 0.25, static: true, dead: false, size: 2.2 });
+    const k0 = kills;
     for (const o of monsters) if (!o.dead && Math.hypot(o.x - m.x, o.y - m.y) < 2.2) hurtMonster(o, 70, 1.2, 0.3, m.x, m.y);
+    if (kills - k0 >= 3) unlock('pod');
     const pd = Math.hypot(P.x - m.x, P.y - m.y);
     if (pd < 2.2) hurtPlayer(Math.round(30 * dmgMul(level) * (1 - pd / 2.6)), m.x, m.y);
     return;
@@ -1289,6 +1322,7 @@ function hurtMonster(m, dmg, knock = 0, stun = 0, fx = P.x, fy = P.y) {
     if (m.boss) { items.push({ x: m.x, y: m.y, kind: 'crate', taken: false }, { x: m.x + 0.3, y: m.y, kind: 'ammo', taken: false }, { x: m.x - 0.3, y: m.y, kind: 'armour', taken: false }); }
     else if (Math.random() < 0.3) items.push({ x: m.x, y: m.y, kind: 'drop', taken: false });
     if (m.boss) {
+      if (level === 10) unlock('boss1'); if (level === 50) unlock('boss5'); if (P.weapon === 'fist') unlock('fists');
       if (level >= FINAL) pendingWin = 1.5;
       else showMsg(`${m.name} falls! The stairs unseal.`);
     } else showMsg('Slain!');
@@ -1647,6 +1681,7 @@ function update(dt) {
       else if (lockMsgT <= 0) { lockMsgT = 2.5; sfx('noway'); showMsg('Locked. The key is somewhere on this floor'); }
     } else if (t === SECRET) {
       map[at] = 0; secrets.found++; sfx('power'); showMsg(`A secret room! (${secrets.found} of ${secrets.total})`);
+      if (secrets.total >= 2 && secrets.found === secrets.total) unlock('secrets');
     }
   }
   if (level === 0) {

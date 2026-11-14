@@ -15,6 +15,7 @@ skill = sys.argv[3] if len(sys.argv) > 3 else 'average'  # or 'weak': slow aim, 
 last = int(sys.argv[4]) if len(sys.argv) > 4 else 100     # stop after this floor
 diff = sys.argv[5] if len(sys.argv) > 5 else 'normal'     # easy | normal | hard
 deaths_at = {}
+wtot, wmeta = {}, {}
 tot, logs = [None] * 10, []
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])
@@ -28,6 +29,10 @@ with sync_playwright() as p:
             st = ev('__bot.run(3000)')
             if st['done'] or errs or st['level'] > last: break
         rep = json.loads(ev('__bot.report()')); logs += rep['log'] + errs
+        wmeta = rep
+        for w, d in rep['weapons'].items():
+            t = wtot.setdefault(w, dict(shots=0, dmg=0, kills=0, ticks=0))
+            for k in t: t[k] += d[k]
         for k, v in rep['deathFloors'].items(): deaths_at[int(k)] = deaths_at.get(int(k), 0) + v
         print(f'run {r + 1}: reached floor {st["level"]}, done={st["done"]}, {rep["secs"] // 60} game minutes', file=sys.stderr)
         for i, z in enumerate(rep['zones']):
@@ -39,5 +44,12 @@ for i, z in enumerate(tot):
     if not z: continue
     f = max(1, z['floors'])
     print(f"{i + 1:>4} {z['deaths'] / runs:>6.1f} {100 * z['endHp'] / f:>4.0f} {z['time'] / f:>5.0f} {100 * z['fistTicks'] / max(1, z['fightTicks']):>5.0f} {z['dmgTaken'] / f:>5.0f} {z['timeouts']:>4} {z['assists']:>6}")
+if wtot:
+    allt = sum(t['ticks'] for t in wtot.values()) or 1
+    print('weapon     shots  dmg/shot  assumed  dps-in-use  use%  kills      (dmg/shot is before the zone bonus; "assumed" is AMMO_DMG)')
+    for w in ['fist', 'ewand', 'dshot', 'phoenix', 'claw', 'hstaff', 'mace', 'plasma', 'rocket', 'bfg']:
+        t = wtot.get(w)
+        if not t or not t['shots']: continue
+        print(f"{w:<9} {t['shots']:>6} {t['dmg'] / t['shots']:>9.1f} {wmeta['ammoDmg'].get(w, 0):>8} {t['dmg'] / max(1, t['ticks']) * 30:>11.1f} {100 * t['ticks'] / allt:>5.0f} {t['kills']:>6}")
 print('deaths by floor:', ' '.join(f'{k}:{v}' for k, v in sorted(deaths_at.items())) or 'none')
 for l in sorted(set(logs))[:20]: print(' ', l[:520])
