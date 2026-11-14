@@ -2,7 +2,7 @@
 
 Fires every weapon on three floors, then checks traps, dart walls, locked doors, secrets, pods, pickups, armour and
 power-ups, difficulty, resume saves and checkpoints, pause, zone results, achievements, the boss bar, settings,
-the victory fallback, and that the pad-free release build loads. Must end with: errors: none
+the victory fallback, every menu screen by keyboard alone and by controller alone, and that the pad-free release build loads. Must end with: errors: none
 (The cutscenes have their own test, tools/cutscenes.py; balance and level generation have tools/bot.py.)
 """
 import os, sys, subprocess
@@ -68,6 +68,35 @@ with sync_playwright() as p:
     ok('start goes on to floor 11', ev("level === 11 && running"))
     ev("victory()")   # Three.js is blocked here, so the ending falls back to the menu
     ok('victory menu', pg.inner_text('#title') == 'SPIRE CONQUERED')
+    # every menu screen must work from the keyboard alone and from a controller alone (no pointer)
+    pg3 = b.new_page(viewport={'width': 960, 'height': 540}); pg3.route('**/three.min.js', lambda r: r.abort()); pg3.on('pageerror', lambda e: errs.append('menus: ' + str(e)))
+    pg3.add_init_script("window.__pad = { connected: true, axes: [0,0,0,0], buttons: Array.from({length: 17}, () => ({ pressed: false, value: 0 })) }; navigator.getGamepads = () => [window.__pad];")
+    pg3.goto('file://' + ROOT + '/index.html#nopad'); pg3.wait_for_timeout(1000)
+    ev3 = lambda s: pg3.evaluate('s => window.__cc.eval(s)', s)
+    key = lambda k: (pg3.keyboard.press(k), pg3.wait_for_timeout(50))
+    def pad(i): pg3.evaluate(f"__pad.buttons[{i}].pressed = true"); pg3.wait_for_timeout(80); pg3.evaluate(f"__pad.buttons[{i}].pressed = false"); pg3.wait_for_timeout(80)
+    screen = lambda: pg3.evaluate("['optpanel','keypanel','recpanel','credits'].find(id => document.getElementById(id).classList.contains('on')) || 'menu'")
+    names = [x.strip() for x in pg3.evaluate("[...document.querySelectorAll('#menu button')].filter(b => b.style.display !== 'none').map(b => b.textContent).join('|')").split('|')]
+    ok('title menu is start, options, controls, records, credits', names == ['START', 'OPTIONS', 'CONTROLS', 'RECORDS', 'CREDITS'])
+    ok('nothing in the title menu overlaps', pg3.evaluate("(() => { const r = [...document.querySelectorAll('#title, #intro, #hiscore, #menu button')].filter(e => e.offsetParent).map(e => e.getBoundingClientRect()).sort((a, b) => a.top - b.top); return r.every((x, i) => i === 0 || x.top >= r[i - 1].bottom - 6) && r[r.length - 1].bottom <= innerHeight; })()"))
+    for i, want in enumerate(['optpanel', 'keypanel', 'recpanel', 'credits']):
+        for _ in range(i + 1): key('ArrowDown')
+        key('Enter'); a_ok = screen() == want; key('Escape'); b_ok = screen() == 'menu'
+        for _ in range(i + 1): key('ArrowUp')
+        ok(f'keyboard opens and closes {want}', a_ok and b_ok)
+    key('ArrowDown'); key('Enter'); v0 = ev3("opts.music"); key('ArrowDown'); key('ArrowRight'); v1 = ev3("opts.music"); key('ArrowLeft'); key('Escape'); key('ArrowUp')
+    ok('keyboard changes a setting', v1 > v0)
+    for i, want in enumerate(['optpanel', 'keypanel', 'recpanel', 'credits']):
+        for _ in range(i + 1): pad(13)
+        pad(0); a_ok = screen() == want; pad(1); b_ok = screen() == 'menu'
+        for _ in range(i + 1): pad(12)
+        ok(f'controller opens and closes {want}', a_ok and b_ok)
+    pad(13); pad(13); pad(13); pad(13); pad(0); pg3.evaluate("__pad.axes[1] = 1"); pg3.wait_for_timeout(400); pg3.evaluate("__pad.axes[1] = 0")
+    ok('controller scrolls the credits', pg3.evaluate("document.getElementById('credits').scrollTop") > 100); pad(1)
+    for _ in range(4): pad(12)
+    ev3("introSeen = true"); pad(0); pg3.wait_for_timeout(200)
+    ok('controller starts the game', ev3("running"))
+    pad(9); pg3.wait_for_timeout(350); ok('controller pauses', ev3("paused")); pad(1); pg3.wait_for_timeout(100); ok('controller resumes with B', ev3("running"))
     # the release build (no on-screen pad) loads and runs
     subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'build.py'), '--release'], check=True, capture_output=True)
     pg2 = b.new_page(); pg2.on('pageerror', lambda e: errs.append('release: ' + str(e)))

@@ -797,7 +797,8 @@ function generate(lv) {
   const rooms = [];
   const target = Math.min(14, 6 + Math.floor(lv / 2));
   for (let tries = 0; tries < 300 && rooms.length < target; tries++) {
-    const w = 4 + ((Math.random() * 5) | 0), h = 4 + ((Math.random() * 5) | 0);
+    const great = rooms.length > 1 && Math.random() < 0.12;      // now and then a great hall
+    const w = great ? 9 + ((Math.random() * 3) | 0) : 4 + ((Math.random() * 5) | 0), h = great ? 9 + ((Math.random() * 3) | 0) : 4 + ((Math.random() * 5) | 0);
     const x0 = 1 + ((Math.random() * (W - w - 2)) | 0), y0 = 1 + ((Math.random() * (H - h - 2)) | 0);
     const x1 = x0 + w - 1, y1 = y0 + h - 1;
     const clash = rooms.some(r => !(x1 + 2 < r.x0 || r.x1 + 2 < x0 || y1 + 2 < r.y0 || r.y1 + 2 < y0));
@@ -816,6 +817,17 @@ function generate(lv) {
     }
   }
   for (const r of rooms) for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) map[idx(x, y)] = 0;
+  // Room shapes: bigger rooms are not all boxes. Corners are cut off (an eight-sided room) or filled in (a cross).
+  // Corridors always run to a room's centre lines, so reshaping corners can never close a way in.
+  for (const r of rooms) {
+    const w = r.x1 - r.x0 + 1, h = r.y1 - r.y0 + 1, pick = Math.random();
+    if (r === rooms[0] || Math.min(w, h) < 6) continue;
+    const corner = (n, test) => { for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) if (test(a, b)) {
+      map[idx(r.x0 + a, r.y0 + b)] = 1; map[idx(r.x1 - a, r.y0 + b)] = 1; map[idx(r.x0 + a, r.y1 - b)] = 1; map[idx(r.x1 - a, r.y1 - b)] = 1; } };
+    if (r.arena) { corner(3, (a, b) => a + b < 3); r.shape = 'round'; }
+    else if (pick < 0.3) { corner(Math.min(w, h) >= 8 ? 3 : 2, (a, b) => a + b < (Math.min(w, h) >= 8 ? 3 : 2)); r.shape = 'round'; }
+    else if (pick < 0.5 && Math.min(w, h) >= 7) { const n = Math.min(3, (Math.min(w, h) - 3) >> 1); corner(n, () => true); r.shape = 'cross'; }
+  }
 
   // L-shaped corridor between two room centres
   const carve = (ax, ay, bx, by) => {
@@ -833,7 +845,7 @@ function generate(lv) {
   // big halls get pillars set off the centre lines, so corridors still run through
   for (const r of rooms) {
     const w = r.x1 - r.x0 + 1, h = r.y1 - r.y0 + 1;
-    if (w >= 7 && h >= 7 && (r.arena || Math.random() < 0.6)) {      // the arena always has its four pillars for cover
+    if (w >= 7 && h >= 7 && r.shape !== 'cross' && (r.arena || Math.random() < 0.6)) {      // the arena always has its four pillars for cover
       for (const [px, py] of [[r.x0 + 2, r.y0 + 2], [r.x1 - 2, r.y0 + 2], [r.x0 + 2, r.y1 - 2], [r.x1 - 2, r.y1 - 2]]) map[idx(px, py)] = 1;
     }
   }
@@ -893,6 +905,21 @@ function generate(lv) {
       const hx = r.cx + (Math.random() < 0.5 ? -1 : 1), hy = r.cy + (Math.random() < 0.5 ? -1 : 1);
       props.push({ x: hx + 0.5, y: hy + 0.5, kind: zp[1][(Math.random() * zp[1].length) | 0], solid: false });
     }
+  }
+  // Scenery must never close a path: add the solid props one at a time and drop any that cuts something off
+  // (a corridor can clip a room right beside a corner, and a pillar there would plug it).
+  {
+    const countOpen = (shut) => { const seen = new Uint8Array(W * H), q = [start]; seen[start] = 1; let n = 1;
+      for (let i = 0; i < q.length; i++) { const c = q[i], x = c % W, y = (c / W) | 0;
+        for (const [dx, dy] of D4) { const k = idx(x + dx, y + dy); if (!seen[k] && !shut.has(k) && isOpen(x + dx, y + dy)) { seen[k] = 1; n++; q.push(k); } } }
+      return n; };
+    const shut = new Set(), base = countOpen(shut);
+    props = props.filter(pr => {
+      if (!pr.solid) return true;
+      const c = idx(Math.floor(pr.x), Math.floor(pr.y)); shut.add(c);
+      if (countOpen(shut) === base - shut.size) return true;
+      shut.delete(c); reserved.delete(c); return false;
+    });
   }
   traps = []; trapAt = new Uint8Array(W * H);                // spike traps in corridors, from floor 7
   for (let n = 0, want = lv >= 7 ? (Math.random() * 4) | 0 : 0, tries = 0; n < want && tries < 300; tries++) {

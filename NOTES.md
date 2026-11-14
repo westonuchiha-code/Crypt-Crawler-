@@ -17,8 +17,9 @@ measurements behind each change, is in docs/notes-history.md.
 ## Checks (the user cannot play-test often: verify with these, do not hand work back)
 | Command | What it proves |
 |---|---|
-| `python3 tools/live.py` | Builds, fires every weapon on three floors, then 22 checks across every system. Must end `errors: none`. |
+| `python3 tools/live.py` | Builds, fires every weapon on three floors, then about 40 checks across every system, including every menu by keyboard alone and by controller alone. Must end `errors: none`. |
 | `python3 tools/bot.py [runs] [first] [average\|weak] [last] [easy\|normal\|hard]` | A bot plays the real game logic. Per zone: deaths, damage taken per floor, stalls; per weapon: real damage per shot and per second. |
+| `python3 tools/levels.py [n]` | Generates floors 1-100 n times each and proves every one can be finished: key, stairs, loot and enemies reachable. |
 | `python3 tools/cutscenes.py [sheet.png]` | Intro and ending end to end with WebGL, and their skip rules. |
 | `python3 tools/balance.py` | Static table: enemy health, ammo margin, hits to die, healing per zone. |
 - The bot's results swing between runs; use two or three runs and compare zones, not absolute numbers.
@@ -31,8 +32,10 @@ measurements behind each change, is in docs/notes-history.md.
   Zones 6-10 have no ceiling (`skyPano`).
 - `generate(lv)` (05-level-generation.js): rooms and corridors, then secrets (0-2 closets behind a `SECRET` wall), scenery
   (`ZONE_PROPS`), spike traps (floor 7+), dart walls (floor 12+, tile `DARTS`), a locked door (`LOCKED`) with its key on
-  your side, loot, explosive pods (floor 5+), and enemies in packs of 2-4. A 400-floor test confirmed keys, stairs, loot
-  and enemies are always reachable.
+  your side, loot, explosive pods (floor 5+), and enemies in packs of 2-4. Bigger rooms get shapes (corners cut off for an
+  eight-sided room, or filled in for a cross; the arena is eight-sided) and about one room in eight is a great hall.
+  Solid scenery is added one piece at a time and dropped if it would cut anything off (a pillar once sealed a doorway).
+  tools/levels.py proves reachability; 800 floors passed.
 - Saves (localStorage): `cc_resume` every floor (exact state; deleted on death), `cc_save` checkpoint at each zone start
   and each boss floor (a retry refills every unlocked gun to at least 1.5 caches), `cc_best`, `cc_stats` (records and
   achievements), `cc_opts` (settings).
