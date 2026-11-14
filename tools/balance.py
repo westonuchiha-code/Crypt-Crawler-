@@ -7,7 +7,7 @@ Run after any change to enemy stats, rosters, loot or the formulas at the top of
 from playwright.sync_api import sync_playwright
 JS = r"""
 (function(){
-  const DPA0 = { pistol: 12, shotgun: 40, wand: 40, lightning: 25 };   // rough damage per unit of ammo in real play
+  const DPA0 = AMMO_DMG;   // rough damage per unit of ammo in real play (table in index.html)
   const rows = [];
   for (let z = 0; z < 10; z++) {
     const acc = { n: 0, hp: 0, ammo: 0, hit: 0, heal: 0, boss: 0, maxHp: 0 }, N = 12;

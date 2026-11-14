@@ -183,3 +183,16 @@ each fight still needs the user's play-testing. `m.scale` and `tex` only matter 
 - Pickups use Blasphemer item sprites: `ITEMS` in tools/enemy_cast.py -> `window.ITEMS` -> `ITEM_PX` (loader `loadSet`).
 - New weapons: NOT built. A mock-up of eight candidates (four Blasphemer, four Freedoom) was shown; waiting for the
   user's pick. The art is hand-less, unlike the photo-hand guns, so check they accept the mix.
+
+## Weapon overhaul (2026-11-14): pack weapons replace the photo-hand guns
+The user chose to keep the photo fist as the unarmed option and use Freedoom / Blasphemer first-person weapons for
+everything else (this overrides the older "photo-hand look" preference in the held-weapon rules above).
+- Ids and unlock floors (`WEAPON_FLOOR`): ewand 1, dshot 3, phoenix 6, claw 9, hstaff 16, mace 26, plasma 46, rocket 66, bfg 86.
+  Keys 1-9 pick guns in that order, 0 is the fist. Old ids (pistol, shotgun, wand, lightning) are gone; old saves drop them.
+- New attack types in `fire()`: `pierce` (`pierceBeam`), `nova` (`novaBlast`), and fireballs with `bounce`, `spread`, `spr`
+  (a `SHOTS` sprite) and `boom` (sound key). ewand/dshot/phoenix/claw reuse the old pistol/shotgun/wand/lightning numbers.
+- Art: `HELD` in tools/enemy_cast.py (idle frame + timed firing sequence, flashes layered on top) -> `window.HELD` ->
+  `drawPackWeapon`. Frames keep their native 320x200 positions; the packer adds `shift` and `scale`.
+- An ammo chest now only stocks guns unlocked on that floor. `AMMO_DMG` feeds both the per-floor ammo sizing and tools/balance.py.
+- The vector weapons (`draw*Art`) and `ART` entries for the old ids are dead code kept as fallback; tools/shoot.py is stale.
+- Damage per shot was measured once in a test room; the five new guns are not play-tuned.

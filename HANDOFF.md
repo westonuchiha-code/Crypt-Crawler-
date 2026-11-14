@@ -56,17 +56,17 @@ python3 tools/live.py            # must say: errors: none
   changing the published game. When they say "continue" or "make the best choice", you may go ahead, but still show
   the result.
 - **First-person rules:** guns sit centred and are seen from behind, pointing at the crosshair. Never point them at the
-  ceiling or sideways. Melee and magic come in from the right. Hands are big, realistic, with sleeves running off the
-  bottom of the screen. They like the **photo-hand** look on the pistol, shotgun, fist, wand and lightning.
+  ceiling or sideways. On 2026-11-14 the user dropped the photo-hand guns for the Freedoom / Blasphemer weapons (no hands)
+  and kept only the photo fist.
 - **Damage must make sense:** fist is weaker than pistol, shotgun is brutal up close, and nothing one-shots on the pistol.
 - **When they're angry:** they swear when frustrated. Own the mistake, fix it, and keep the reply short.
 - **Rejected and removed, don't bring back without asking:** whip, crossbow, chaingun, sword (no art they liked), the
   arms-rig 3D hands, and the 3D megapack monsters (bad posed arms).
 
 ## Current state
-- **Weapons:** fist, pistol, shotgun, wand (fireball) and lightning (chain). All but the fist use ammo. An empty gun leaves
-  the weapon cycle until another crate brings it back. Guns unlock by depth: pistol on floor 1, shotgun 3, wand 6,
-  lightning 9. The role of each weapon is written above the `WEAPONS` table.
+- **Weapons:** photo fist plus nine pack weapons (elven wand, double shotgun, phoenix rod, dragon claw, hellstaff,
+  firemace, plasma rifle, rocket launcher, the Big One), unlocking from floor 1 to 86. All guns use ammo; an empty gun
+  leaves the cycle until another cache brings it back. Roles are written above the `WEAPONS` table.
 - **Zones:** `ZONES`, `THEMES`, `ROSTERS` and `BOSS_HP` sit near the top of the script. Difficulty scales by zone
   (`hpMul`, `dmgMul`), never by raw floor number. Zones 6-10 have no ceiling and use open-sky panoramas (`skyPano`).
 - **Enemies:** 13 regular kinds plus 10 bosses (boss1 to boss10), using Freedoom and Blasphemer sprites (BSD licence, the

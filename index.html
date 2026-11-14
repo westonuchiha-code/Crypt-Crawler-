@@ -75,7 +75,7 @@
   <div id="hiscore"></div>
   <button id="go">PRESS START</button>
   <button id="newclimb" style="display:none">new climb (erase checkpoint)</button>
-  <p id="help">Keys: WASD move · ←/→ turn · space fires · 1-5 weapons · M map &nbsp;|&nbsp; Pad: ✕ fire · □ gun · △ map · START</p>
+  <p id="help">Keys: WASD move · ←/→ turn · space fires · 1-9 guns, 0 fists · M map &nbsp;|&nbsp; Pad: ✕ fire · □ gun · △ map · START</p>
   <button id="creditsbtn">credits</button>
   <div id="credits">
     <button id="creditsclose">CLOSE ✕</button>
@@ -85,8 +85,8 @@
     <p>Freedoom · the Freedoom project contributors<br><small>freedoom.github.io · 3-clause BSD licence, below</small></p>
     <p>Blasphemer · the Blasphemer project contributors<br><small>github.com/Blasphemer/blasphemer · 3-clause BSD licence, below</small></p>
     <h3>Weapons and hands</h3>
-    <p>FPS Weapon Sprites · Ragnar Random, from models by Quaternius<br><small>opengameart.org · CC0 (public domain)</small></p>
-    <p>Fantasy FPS Hands · Ragnar Random<br><small>opengameart.org · free to use</small></p>
+    <p>Guns, staffs and wands · Freedoom and Blasphemer<br><small>same projects and licences as the creatures</small></p>
+    <p>Fist · FPS Weapon Sprites by Ragnar Random, from models by Quaternius<br><small>opengameart.org · CC0 (public domain)</small></p>
     <h3>Walls, floors and doors</h3>
     <p>Dungeon and door tile sheets · Modular PSX Sewer Kit<br><small>zone tiles recoloured and repainted from these</small></p>
     <h3>3D scenes</h3>
@@ -218,35 +218,45 @@ const zoneMaxHp = lv => 100 + 10 * zoneOf(lv);                      // 100 in th
 const potionHeal = lv => 35 + 4 * zoneOf(lv);
 const potionCount = lv => 2 + (zoneOf(lv) >= 3) + (zoneOf(lv) >= 7);
 const AMMO_RATIO = lv => 1.9 - 0.065 * zoneOf(lv);                  // 1.9 ... 1.3
-const AMMO_DMG = { pistol: 12, shotgun: 40, wand: 40, lightning: 25 };   // rough damage one unit of ammo deals in real play
+const AMMO_DMG = { ewand: 12, dshot: 40, phoenix: 40, claw: 25, hstaff: 13, mace: 8, plasma: 12, rocket: 110, bfg: 500 };   // rough damage one unit of ammo deals in real play
 const wpnMul = lv => 1 + 0.1 * zoneOf(lv);                          // your weapons hit 10% harder for every zone climbed
 const ARMOUR_MAX = 100, ARMOUR_PICKUP = 50, ARMOUR_SOAK = 0.5;      // armour takes half of each hit until it is gone
 const FURY_TIME = 20, WARD_TIME = 8;                                // double damage / cannot be hurt, in seconds
 let floorAmmo = 1;                                                  // this floor's ammo multiplier, set in generate()
 const ammoMul = () => floorAmmo;
 const dmgMul = lv => 1 + 0.12 * zoneOf(lv);
-// Damage is [min, max] per hit; enemy HP is on the same scale (imp 20, skeleton 30+, bosses 300-900).
-// knock = shove back (cells), stun = seconds the enemy cannot move or attack. Bosses take 20% knock, 30% stun.
-//  pistol    steady and accurate, infinite: ~35 dps at any range
-//  shotgun   7 pellets; full damage within 2.5 cells, fading to 25% by 8 cells; big knockback (one-shots close up)
-//  fist      last resort: weaker than the pistol (~18 dps), but shoves and staggers so you can make space
-//  wand      fireball: direct hit plus splash on everything within 1.6 cells
-//  lightning free crowd control: weaker hits that chain to 3 enemies (each jump 75%) and stun them
+// Damage is [min, max] per hit, before the zone bonus (wpnMul). knock = shove back (cells), stun = seconds the enemy
+// cannot move or attack; bosses take 20% knock and 30% stun. One job each:
+//  fist      always there: weak, but shoves and staggers so you can make space
+//  ewand     the starter: steady, accurate single shots
+//  dshot     7 pellets; brutal within 2.5 cells, fading to 25% by 8; big knockback; slow reload
+//  phoenix   fireball: direct hit plus splash on everything within 1.6 cells
+//  claw      chain lightning: weaker hits that jump to 3 enemies and stun them
+//  hstaff    rapid beam that passes through every enemy in the line
+//  mace      sprays spheres that bounce off walls: fills corridors, wasteful in the open
+//  plasma    very fast stream of bolts: the best sustained damage on one target
+//  rocket    slow, huge blast
+//  bfg       one core clears the room: hits everything you can see within 9 cells
 const WEAPONS = {
-  fist:    { name: 'FIST',     type: 'melee',    cool: 0.55, dmg: [8, 12],  range: 1.5, arc: 0.7, knock: 1.6, stun: 0.45, ammo: false, animDur: 0.5 },
-  pistol:  { name: 'PISTOL',   type: 'hitscan',  cool: 0.34, dmg: [10, 14], pellets: 1, spread: 0.01, stun: 0.08, ammo: true },
-  shotgun: { name: 'SHOTGUN',  type: 'hitscan',  cool: 0.90, dmg: [7, 11],  pellets: 7, spread: 0.12, near: 2.5, far: 8, knock: 0.45, stun: 0.12, ammo: true, animDur: 0.85 },
-  wand:    { name: 'WAND',     type: 'fireball', cool: 0.75, dmg: [26, 34], speed: 6, blast: 1.6, blastDmg: [14, 20], knock: 1.0, ammo: true, animDur: 0.6 },
-  lightning:{ name: 'LIGHTNING', type: 'chain',   cool: 0.65, dmg: [12, 16], range: 6, arc: 0.35, chain: 2.5, jumps: 3, falloff: 0.75, stun: 0.4, ammo: true, animDur: 0.6 }
+  fist:    { name: 'FIST',            type: 'melee',    cool: 0.55, dmg: [8, 12],  range: 1.5, arc: 0.7, knock: 1.6, stun: 0.45, ammo: false, animDur: 0.5 },
+  ewand:   { name: 'ELVEN WAND',      type: 'hitscan',  cool: 0.34, dmg: [10, 14], pellets: 1, spread: 0.01, stun: 0.08, ammo: true, animDur: 0.3 },
+  dshot:   { name: 'DOUBLE SHOTGUN',  type: 'hitscan',  cool: 0.95, dmg: [7, 11],  pellets: 7, spread: 0.12, near: 2.5, far: 8, knock: 0.45, stun: 0.12, ammo: true, animDur: 0.9 },
+  phoenix: { name: 'PHOENIX ROD',     type: 'fireball', cool: 0.75, dmg: [26, 34], speed: 6, blast: 1.6, blastDmg: [14, 20], knock: 1.0, ammo: true, animDur: 0.6, spr: 'fire' },
+  claw:    { name: 'DRAGON CLAW',     type: 'chain',    cool: 0.65, dmg: [12, 16], range: 6, arc: 0.35, chain: 2.5, jumps: 3, falloff: 0.75, stun: 0.4, ammo: true, animDur: 0.6 },
+  hstaff:  { name: 'HELLSTAFF',       type: 'pierce',   cool: 0.2,  dmg: [8, 11],  range: 12, stun: 0.05, ammo: true, animDur: 0.2 },
+  mace:    { name: 'FIREMACE',        type: 'fireball', cool: 0.16, dmg: [10, 14], speed: 7, spread: 0.1, bounce: 3, life: 2.4, ammo: true, animDur: 0.3, spr: 'spit' },
+  plasma:  { name: 'PLASMA RIFLE',    type: 'fireball', cool: 0.12, dmg: [12, 16], speed: 11, ammo: true, animDur: 0.14, spr: 'bolt' },
+  rocket:  { name: 'ROCKET LAUNCHER', type: 'fireball', cool: 0.9,  dmg: [60, 80], speed: 8, blast: 2.3, blastDmg: [35, 50], knock: 1.6, ammo: true, animDur: 0.6, spr: 'rocket', boom: 'bigboom' },
+  bfg:     { name: 'THE BIG ONE',     type: 'nova',     cool: 1.6,  dmg: [150, 210], range: 9, knock: 1.5, ammo: true, animDur: 1.1 }
 };
-// Loot. A weapon crate holds one gun (deeper floors unlock more) plus its starting ammo; ammo boxes stock every pool,
-// even for guns you do not have yet. When a gun runs dry it leaves your weapon cycle until you find another.
-const WEAPON_FLOOR = { pistol: 1, shotgun: 3, wand: 6, lightning: 9 };       // first floor each gun can appear on
-const CRATE_AMMO = { pistol: 24, shotgun: 8, wand: 8, lightning: 10 };
-const BOX_AMMO = { pistol: 12, shotgun: 4, wand: 3, lightning: 3 };
-const AMMO_NAME = { pistol: 'bullets', shotgun: 'shells', wand: 'charges', lightning: 'sparks' };
+// Loot. A weapon cache holds one gun (deeper floors unlock more) plus its starting ammo; an ammo chest stocks every gun
+// unlocked so far. When a gun runs dry it leaves your weapon cycle until you find another cache.
+const WEAPON_FLOOR = { ewand: 1, dshot: 3, phoenix: 6, claw: 9, hstaff: 16, mace: 26, plasma: 46, rocket: 66, bfg: 86 };   // first floor each gun can appear on
+const CRATE_AMMO = { ewand: 24, dshot: 8, phoenix: 8, claw: 10, hstaff: 40, mace: 50, plasma: 60, rocket: 6, bfg: 2 };
+const BOX_AMMO =   { ewand: 12, dshot: 4, phoenix: 3, claw: 3,  hstaff: 14, mace: 16, plasma: 20, rocket: 2, bfg: 1 };
+const AMMO_NAME = { ewand: 'crystals', dshot: 'shells', phoenix: 'flame orbs', claw: 'charges', hstaff: 'runes', mace: 'spheres', plasma: 'cells', rocket: 'rockets', bfg: 'cores' };
 const roll = d => Array.isArray(d) ? Math.round(rnd(d[0], d[1])) : d;
-const WEAPON_ORDER = ['pistol', 'shotgun', 'wand', 'lightning', 'fist'];
+const WEAPON_ORDER = ['ewand', 'dshot', 'phoenix', 'claw', 'hstaff', 'mace', 'plasma', 'rocket', 'bfg', 'fist'];
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -565,7 +575,7 @@ let pendingWin = 0, sealMsgT = 0, introActive = false, introSeen = false, endAct
 const newPlayer = () => ({
   x: 3.5, y: 4.5, a: -Math.PI / 2, hp: 100, maxHp: 100, fire: 0, flash: 0, hurt: 0, anim: 0, swingT: 9, hitFlash: 0,
   weapon: 'fist', owned: { fist: true },                      // you start with bare fists; guns come from weapon crates
-  ammo: { pistol: 0, shotgun: 0, wand: 0, lightning: 0 }, armor: 0, fury: 0, ward: 0
+  ammo: Object.fromEntries(Object.keys(WEAPON_FLOOR).map(w => [w, 0])), armor: 0, fury: 0, ward: 0, nova: 0
 });
 
 // ---------- level generation ----------
@@ -900,7 +910,8 @@ function nextLevel() {
 function continueGame(cp) {
   kills = cp.kills || 0;
   P = newPlayer(); Object.assign(P.owned, cp.owned); Object.assign(P.ammo, cp.ammo);
-  P.weapon = P.owned[cp.weapon] ? cp.weapon : 'fist'; P.armor = cp.armor || 0;
+  for (const w in P.owned) if (!WEAPONS[w]) delete P.owned[w];          // a save from before the weapon change
+  P.weapon = WEAPONS[cp.weapon] && P.owned[cp.weapon] ? cp.weapon : (WEAPON_ORDER.find(w => P.owned[w]) || 'fist'); P.armor = cp.armor || 0;
   level = cp.floor; P.maxHp = P.hp = zoneMaxHp(level); generate(level);
   running = true; overlay.style.display = 'none';
   showMsg(`${ZONES[zoneOf(level)].name} · floor ${level}`);
@@ -924,7 +935,7 @@ function pickupItem(kind) {
   } else if (kind === 'ward') {
     P.ward = WARD_TIME; showMsg(`Ward · nothing can hurt you for ${WARD_TIME} seconds`);
   } else if (kind === 'ammo') {
-    for (const w in BOX_AMMO) P.ammo[w] += Math.round(BOX_AMMO[w] * floorAmmo);
+    for (const w in BOX_AMMO) if (level >= WEAPON_FLOOR[w]) P.ammo[w] += Math.round(BOX_AMMO[w] * floorAmmo);   // only guns unlocked so far
     showMsg('Ammo box');
   } else if (kind === 'drop') {                       // small ammo dropped by an enemy, for a random gun you can use on this floor
     const pool = Object.keys(WEAPON_FLOOR).filter(w => level >= WEAPON_FLOOR[w]);
@@ -1001,15 +1012,36 @@ function fire() {
   const used = P.weapon;
   if (w.ammo) P.ammo[used]--;
   P.fire = w.cool; P.anim = 1; P.animRate = 1 / (w.animDur || 0.4);
+  if (w.type !== 'melee') sfx(P.weapon);
   if (w.type === 'hitscan') {
-    P.flash = 0.09; sfx(P.weapon);
+    P.flash = 0.09;
     for (let i = 0; i < w.pellets; i++) hitscan(P.a + (w.spread ? rnd(-w.spread, w.spread) : 0), w);
   } else if (w.type === 'melee') { P.swingT = 0; if (meleeHit(w) > 0) { P.hitFlash = 0.15; sfx('punch'); } else sfx('swing', 0.6); }
-  else if (w.type === 'chain') { sfx('lightning'); chainLightning(w); }
-  else { sfx('wand'); spawnPlayerShot(w); }
+  else if (w.type === 'chain') chainLightning(w);
+  else if (w.type === 'pierce') pierceBeam(w);
+  else if (w.type === 'nova') novaBlast(w);
+  else spawnPlayerShot(w);
   dropIfEmpty(used);
 }
 
+// Hellstaff: a beam along the aim line that hurts every enemy on it, up to the first wall.
+function pierceBeam(w) {
+  const dx = Math.cos(P.a), dy = Math.sin(P.a);
+  let reach = 0.3; while (reach < w.range && !solid(P.x + dx * reach, P.y + dy * reach)) reach += 0.1;
+  for (const m of monsters) {
+    if (m.dead) continue;
+    const ex = m.x - P.x, ey = m.y - P.y, along = ex * dx + ey * dy;
+    if (along > 0.2 && along < reach && Math.abs(ex * dy - ey * dx) < (m.boss ? 0.5 : 0.25)) hurtMonster(m, roll(w.dmg), 0, w.stun);
+  }
+  bolts.push({ hand: true, ax: 0, ay: 0, bx: P.x + dx * reach, by: P.y + dy * reach, life: 0.09, col: '#ff5a3c' });
+}
+// The Big One: everything in sight within range takes the blast.
+function novaBlast(w) {
+  P.nova = 0.35; sfx('nova');
+  for (const m of monsters) {
+    if (!m.dead && Math.hypot(m.x - P.x, m.y - P.y) < w.range && los(P.x, P.y, m.x, m.y)) hurtMonster(m, roll(w.dmg), w.knock, 0.5);
+  }
+}
 // One enemy projectile from m, `off` radians away from the line to the player (or at absolute angle `abs`).
 function spawnShot(m, off = 0, dmgMulBy = 1, abs = null) {
   const a = abs === null ? Math.atan2(P.y - m.y, P.x - m.x) + off : abs;
@@ -1080,14 +1112,15 @@ function spawnPlayerShot(w) {
   const dx = Math.cos(P.a), dy = Math.sin(P.a);
   const sx = P.x + dx * 0.4, sy = P.y + dy * 0.4;
   const aimX = P.x + dx * 5 - sx, aimY = P.y + dy * 5 - sy, al = Math.hypot(aimX, aimY);
-  pshots.push({ kind: w.type === 'arrow' ? 'arrow' : 'magic', x: sx, y: sy,
-    vx: aimX / al * w.speed, vy: aimY / al * w.speed, life: 1.6, dmg: w.dmg, blast: w.blast || 0, blastDmg: w.blastDmg || 0, knock: w.knock || 0, dead: false });
+  const a = Math.atan2(aimY, aimX) + (w.spread ? rnd(-w.spread, w.spread) : 0);
+  pshots.push({ kind: 'magic', spr: w.spr, x: sx, y: sy, vx: Math.cos(a) * w.speed, vy: Math.sin(a) * w.speed, life: w.life || 1.6, t: 0,
+    dmg: w.dmg, blast: w.blast || 0, blastDmg: w.blastDmg || 0, knock: w.knock || 0, bounce: w.bounce || 0, boom: w.boom || 'boom', dead: false });
 }
 function explode(s) {
   s.dead = true;
   if (s.blast > 0) {
-    sfxAt('boom', s.x, s.y);
-    pshots.push({ kind: 'boom', x: s.x, y: s.y, vx: 0, vy: 0, life: 0.25, static: true, dead: false });
+    sfxAt(s.boom, s.x, s.y);
+    pshots.push({ kind: 'boom', x: s.x, y: s.y, vx: 0, vy: 0, life: 0.25, static: true, dead: false, size: s.blast });
     for (const m of monsters) {
       if (!m.dead && Math.hypot(m.x - s.x, m.y - s.y) < s.blast) hurtMonster(m, roll(s.blastDmg), s.knock, 0.2, s.x, s.y);
     }
@@ -1097,11 +1130,19 @@ function updatePlayerShots(dt) {
   for (const s of pshots) {
     if (s.dead) continue;
     if (s.static) { s.life -= dt; if (s.life <= 0) s.dead = true; continue; }
-    s.life -= dt;
+    s.life -= dt; s.t += dt;
     const steps = 4;
     for (let k = 0; k < steps && !s.dead; k++) {
+      const px = s.x, py = s.y;
       s.x += s.vx * dt / steps; s.y += s.vy * dt / steps;
-      if (solid(s.x, s.y)) { explode(s); break; }
+      if (solid(s.x, s.y)) {
+        if (s.bounce > 0) {                                  // firemace spheres skip off walls
+          s.bounce--;
+          if (!solid(px, s.y)) { s.vx = -s.vx; s.x = px; } else if (!solid(s.x, py)) { s.vy = -s.vy; s.y = py; } else { s.vx = -s.vx; s.vy = -s.vy; s.x = px; s.y = py; }
+          continue;
+        }
+        explode(s); break;
+      }
       for (const m of monsters) {
         if (!m.dead && Math.hypot(m.x - s.x, m.y - s.y) < 0.35) {
           hurtMonster(m, roll(s.dmg));
@@ -1155,7 +1196,7 @@ function projectX(x, y) {
   return ty > 0.2 ? RW / 2 * (1 + tx / ty) : null;
 }
 // draw one jagged bolt between two screen points: blue glow, white core, impact flash
-function drawJaggedBolt(x1, y1, x2, y2) {
+function drawJaggedBolt(x1, y1, x2, y2, col) {
   const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
   const nx = -dy / len, ny = dx / len;                 // perpendicular: jitter across the bolt, not along it
   const amp = Math.min(9, len * 0.1);
@@ -1171,7 +1212,7 @@ function drawJaggedBolt(x1, y1, x2, y2) {
     for (let i = 1; i < pts.length; i++) bctx.lineTo(pts[i][0], pts[i][1]);
     bctx.stroke();
   };
-  stroke('rgba(80,160,255,0.45)', 3);
+  stroke(col ? col + '88' : 'rgba(80,160,255,0.45)', 3);
   stroke('#f4fbff', 1);
   bctx.fillStyle = 'rgba(190,225,255,0.7)';
   bctx.beginPath(); bctx.arc(x2, y2, 2.5, 0, Math.PI * 2); bctx.fill();
@@ -1188,7 +1229,7 @@ function drawBolts() {
       if (x1 === null) continue;
       y1 = y2;
     }
-    drawJaggedBolt(x1, y1, x2, y2);
+    drawJaggedBolt(x1, y1, x2, y2, b.col);
   }
   bctx.lineWidth = 1;
 }
@@ -1324,7 +1365,7 @@ function update(dt) {
     if (P.y === oy) P.vy *= 0.5;
   }
 
-  P.fire -= dt; P.flash -= dt; P.hurt -= dt; msgT -= dt; sealMsgT -= dt; P.fury -= dt; P.ward -= dt;
+  P.fire -= dt; P.flash -= dt; P.hurt -= dt; msgT -= dt; sealMsgT -= dt; P.fury -= dt; P.ward -= dt; P.nova -= dt;
   P.anim = Math.max(0, P.anim - dt * (P.animRate || 2.5));
   P.swingT += dt;
   P.hitFlash = Math.max(0, P.hitFlash - dt);
@@ -1497,8 +1538,10 @@ function renderSprites(dirX, dirY, planeX, planeY) {
   }
   for (const s of pshots) {
     if (s.kind === 'arrow') continue;                // bolts are drawn along their flight path by drawArrowShots()
+    const art = s.kind !== 'boom' && SHOT_PX[s.spr];
+    if (art) { if ((s.x - P.x) ** 2 + (s.y - P.y) ** 2 > 0.6) list.push({ x: s.x, y: s.y, tex: art.frames[Math.floor(s.t * 12) % art.frames.length], hurt: false, mon: true, k: art.k, lift: 0 }); continue; }
     const tex = s.kind === 'boom' ? SPR.fire : SPR.magic;
-    list.push({ x: s.x, y: s.y, tex, hurt: false, v: 0, scale: s.kind === 'boom' ? 1.6 : 0.7, minD: s.kind === 'magic' ? 0.9 : 0.2 });
+    list.push({ x: s.x, y: s.y, tex, hurt: false, v: 0, scale: s.kind === 'boom' ? (s.size || 1.6) : 0.7, minD: s.kind === 'magic' ? 0.9 : 0.2 });
   }
   if (stairsPos && level > 0) list.push({ x: stairsPos.x, y: stairsPos.y, tex: SPR.stairs, hurt: false, v: 0.15, scale: 1 });
   for (const s of list) s.d = (s.x - P.x) ** 2 + (s.y - P.y) ** 2;
@@ -1740,7 +1783,7 @@ function drawWandArt(a) {
   drawBigFist(bx, by);
 }
 // open casting hand for lightning; palmPoint() (screen coords) is also where bolts start (see drawBolts)
-function palmPoint(a) { if (artReady('lightning')) { const [x, y] = artTip('lightning'); return [x, y + 2]; } return [RIGHT_X - 4 - a * 4, RH - 100 - a * 6]; }
+function palmPoint(a) { if (heldReady(P.weapon)) return [RW / 2, RH - (P.weapon === 'hstaff' ? 62 : 90)]; if (artReady('lightning')) { const [x, y] = artTip('lightning'); return [x, y + 2]; } return [RIGHT_X - 4 - a * 4, RH - 100 - a * 6]; }
 function drawCastHand(a) {
   bctx.save(); bctx.translate(-a * 4, -a * 6);
   poly([-14, -40, 16, -40, 34, 4, -2, 4], SKD);                      // forearm
@@ -1826,6 +1869,20 @@ function drawArtWeapon(w) {
   }
 }
 
+// Pack weapons (window.HELD, from tools/enemy_cast.py): frames sit at their original 320x200 screen positions,
+// slid down by `shift` so the idle frame meets the bottom edge, then scaled about the bottom centre (`scale`).
+const heldImgs = {};
+if (window.HELD) for (const w in HELD) { heldImgs[w] = {}; for (const n in HELD[w].frames) { const im = new Image(); im.src = HELD[w].frames[n][0]; heldImgs[w][n] = im; } }
+function heldReady(w) { const f = heldImgs[w]; return !!f && Object.values(f).every(im => im.complete && im.naturalWidth > 0); }
+function drawPackWeapon(w) {
+  const Hd = HELD[w], pr = 1 - P.anim;
+  let names = [Hd.idle];
+  if (P.anim > 0.001) for (const [u, n] of Hd.seq) if (pr < u) { names = n; break; }
+  bctx.imageSmoothingEnabled = false;
+  bctx.save(); bctx.translate(RW / 2, RH); bctx.scale(Hd.scale, Hd.scale); bctx.translate(-RW / 2, -RH + Hd.shift);
+  for (const n of names) bctx.drawImage(heldImgs[w][n], Hd.frames[n][1], Hd.frames[n][2]);
+  bctx.restore();
+}
 // walk bob: weapons sway as the player moves (Doom/Wolf3D style)
 let bobPh = 0, bobAmt = 0, bobLX = 0, bobLY = 0;
 function drawHeldWeapon(cx, base, rec) {
@@ -1835,7 +1892,8 @@ function drawHeldWeapon(cx, base, rec) {
   const bx = Math.round(Math.sin(bobPh) * 6 * bobAmt), by = Math.round(Math.abs(Math.cos(bobPh)) * 5 * bobAmt);
   const kick = P.flash > 0 ? 7 : 0;
   bctx.save(); bctx.translate(bx, by);
-  if (artReady(P.weapon)) {
+  if (heldReady(P.weapon)) drawPackWeapon(P.weapon);
+  else if (artReady(P.weapon)) {
     drawArtWeapon(P.weapon);
   } else {
     const centred = ['pistol', 'shotgun'].includes(P.weapon);
@@ -1861,6 +1919,7 @@ function drawOverlays() {
     bctx.fillStyle = `rgba(200,0,0,${Math.min(0.45, P.hurt * 1.5)})`;
     bctx.fillRect(0, 0, RW, RH);
   }
+  if (P.nova > 0) { bctx.fillStyle = `rgba(150,255,170,${Math.min(0.7, P.nova * 2)})`; bctx.fillRect(0, 0, RW, RH); }   // the Big One's flash
   drawHitFlash();
   drawBolts();
   drawArrowShots();
@@ -2282,8 +2341,8 @@ const END_CAM = [
 const END_CAPS = [[0.4, 'The Spire Titan is dead.'], [2.4, 'One last door.'], [4.6, ''], [6.4, 'Red dust. Thin air. Two moons.'],
   [10.4, 'A hundred floors below, the crypt is quiet.'], [13.2, 'You climbed out of one world... and into another.'], [16, '']];
 const END_CREDITS = k => `The climb is over<br>100 floors · ${k} slain
-  <b>Weapon and hand art</b>Ragnar Random · OpenGameArt
-  <b>Creatures and sound</b>Freedoom · Blasphemer
+  <b>Creatures, weapons and sound</b>Freedoom · Blasphemer
+  <b>Fist</b>Ragnar Random · OpenGameArt
   <b>3D scenes</b>three.js
   <b>The Spire</b>10 zones · 23 kinds of horror · 1 survivor
   <br><br>Thanks for playing<br><br>`;
@@ -2445,7 +2504,7 @@ function resetGame() {
 }
 
 const PREVENT = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space']);
-const WEAPON_KEYS = { Digit1: 'pistol', Digit2: 'shotgun', Digit3: 'wand', Digit4: 'lightning', Digit5: 'fist' };
+const WEAPON_KEYS = { Digit0: 'fist' }; WEAPON_ORDER.slice(0, 9).forEach((w, i) => { WEAPON_KEYS['Digit' + (i + 1)] = w; });   // 1-9 guns, 0 fists
 addEventListener('keydown', e => {
   if (introActive) { if (['Space', 'Enter', 'Escape'].includes(e.code) && canSkipIntro()) endIntro(); return; }
   if (endActive) { if (['Space', 'Enter', 'Escape'].includes(e.code) && !e.repeat && canSkipEnding()) finishEnding(); return; }

@@ -9,10 +9,10 @@ with sync_playwright() as p:
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.goto('file://' + ROOT + '/index.html#nopad'); pg.click('#go'); pg.wait_for_timeout(300)
     ev = lambda s: pg.evaluate('s => window.__cc.eval(s)', s)
-    for lv in [1, 4, 6]:
+    for lv in [1, 46, 96]:
         ev(f"level = {lv}; generate({lv}); P.hp = 9999;")
-        for w in ['pistol','shotgun','wand','lightning']:
-            ev(f"P.weapon = '{w}'; monsters.push(spawnMonster(P.x + Math.cos(P.a)*2, P.y + Math.sin(P.a)*2, 'imp', 1)); P.fire = 0; fire();")
+        for w in ['ewand','dshot','phoenix','claw','hstaff','mace','plasma','rocket','bfg','fist']:
+            ev(f"P.owned.{w} = true; P.ammo.{w} = 9; P.weapon = '{w}'; monsters.push(spawnMonster(P.x + Math.cos(P.a)*2, P.y + Math.sin(P.a)*2, 'imp', 1)); P.fire = 0; fire();")
             pg.wait_for_timeout(250)
     ev("victory()")   # Three.js is blocked here, so the ending falls back to the menu
     print('victory menu:', pg.inner_text('#title'))

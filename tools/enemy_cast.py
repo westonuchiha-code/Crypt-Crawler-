@@ -51,4 +51,23 @@ ITEMS = {
     'fury':   ('b', ['pwbka0'], 0.30),                       # tome: double damage for a while
     'ward':   ('b', ['invua0', 'invub0', 'invuc0', 'invud0'], 0.34),   # cannot be hurt for a while
 }
+# First-person weapons: game weapon id -> (set, idle frame, firing sequence). Each step of the sequence is
+# (fraction of the firing animation by which it ends, frames drawn on top of each other: weapon, then muzzle flash).
+# Frames keep their original screen positions (the art is drawn for a 320x200 view). Packed as window.HELD.
+HELD = {
+    'ewand':   ('b', 'gwnda0', [(0.25, ['gwndb0']), (0.5, ['gwndc0']), (0.8, ['gwndd0'])]),
+    'dshot':   ('f', 'sht2a0', [(0.08, ['sht2a0', 'sht2i0']), (0.16, ['sht2a0', 'sht2j0']), (0.28, ['sht2b0']), (0.40, ['sht2c0']),
+                                (0.52, ['sht2d0']), (0.64, ['sht2e0']), (0.76, ['sht2f0']), (0.88, ['sht2g0']), (1.0, ['sht2h0'])]),
+    'phoenix': ('b', 'phnxa0', [(0.2, ['phnxb0']), (0.5, ['phnxc0']), (0.85, ['phnxd0'])]),
+    'claw':    ('b', 'blsra0', [(0.25, ['blsrc0']), (0.6, ['blsrd0']), (0.85, ['blsrc0'])]),
+    'hstaff':  ('b', 'hroda0', [(0.3, ['hrode0']), (0.6, ['hrodf0']), (1.0, ['hrodg0'])]),
+    'mace':    ('b', 'macea0', [(0.25, ['maceb0']), (0.5, ['macec0']), (0.75, ['maced0']), (1.0, ['macee0'])]),
+    'plasma':  ('f', 'plsga0', [(0.4, ['plsfa0']), (0.7, ['plsfb0']), (1.0, ['plsgb0'])]),
+    'rocket':  ('f', 'misga0', [(0.15, ['misgb0', 'misfa0']), (0.3, ['misgb0', 'misfb0']), (0.45, ['misgb0', 'misfc0']),
+                                (0.6, ['misgb0', 'misfd0']), (1.0, ['misgb0'])]),
+    'bfg':     ('f', 'bfgga0', [(0.3, ['bfggb0']), (0.5, ['bfgfa0']), (0.7, ['bfgfb0']), (1.0, ['bfggc0'])]),
+}
+def held_frames(w):
+    s, idle, seq = HELD[w]
+    return sorted({idle} | {n for _, names in seq for n in names})
 SETS = {'f': 'freedoom', 'b': 'blasphemer'}

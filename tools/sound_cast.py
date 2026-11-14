@@ -6,8 +6,11 @@ Enemy keys are '<kind>_<event>': see (first notices you), atk (melee), shot (ran
 pain, die, act (idle growl now and then). Leave an event out and that enemy is silent for it.
 """
 GENERAL = {
-    'pistol': 'f:dspistol', 'shotgun': 'f:dsshotgn', 'punch': 'f:dspunch', 'swing': 'f:dsskeswg',
-    'wand': 'f:dsfirsht', 'boom': 'f:dsbarexp', 'lightning': 'f:dsplasma', 'empty': 'f:dsswtchx',
+    'punch': 'f:dspunch', 'swing': 'f:dsskeswg', 'empty': 'f:dsswtchx',
+    # one per weapon id (WEAPONS in index.html)
+    'ewand': 'b:gldhit', 'dshot': 'f:dsdshtgn', 'phoenix': 'b:phosht', 'claw': 'b:blssht', 'hstaff': 'b:hrnsht',
+    'mace': 'b:lobsht', 'plasma': 'f:dsplasma', 'rocket': 'f:dsrlaunc', 'bfg': 'f:dsbfg',
+    'boom': 'b:phohit', 'bigboom': 'f:dsbarexp', 'nova': 'f:dsrxplod',
     'eshot': 'f:dsfirsht', 'eboom': 'f:dsfirxpl',
     'hurt': 'f:dsplpain', 'death': 'f:dspldeth', 'noway': 'f:dsnoway',
     'item': 'f:dsitemup', 'weapon': 'f:dswpnup', 'power': 'f:dsgetpow',

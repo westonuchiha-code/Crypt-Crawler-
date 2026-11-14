@@ -9,12 +9,13 @@ keep the two in step. "Required" means the licence obliges us to ship the notice
 | Enemies, bosses, pickups | Blasphemer sprites | Blasphemer project contributors | BSD 3-clause | **Yes**: ship art/enemies/blasphemer/COPYING.md |
 | Sound effects | Freedoom and Blasphemer sounds (art/sounds) | same projects | BSD 3-clause | **Yes**: covered by the same two notices |
 | Intro and ending scenes | three.js r128 | three.js authors | MIT | **Yes**: ship its licence text |
-| Pistol, shotgun, fist | FPS Weapon Sprites | Ragnar Random (from Quaternius models) | CC0 | No (credited anyway) |
-| Wand and lightning hands | Fantasy FPS Hands | Ragnar Random | "do as you will" | No (credit appreciated) |
+| Guns, staffs, wands | Freedoom and Blasphemer weapon sprites | same projects | BSD 3-clause | **Yes**: covered by the same two notices |
+| Fist | FPS Weapon Sprites | Ragnar Random (from Quaternius models) | CC0 | No (credited anyway) |
 | Walls, floors, doors | "Dungeon_Map.png" and "Doors_Map.png" tile sheets | paid itch.io pack (name to look up) | to check | **To confirm before release** |
 | Sewer brick wall | Modular PSX Sewer Kit | itch.io (author to look up) | to check | **To confirm before release** |
 
-Not shipped: art/anarch (CC0, unused) and rqpad.js (the developer's own on-screen pad, test scaffolding only).
+No longer used in the game (kept in art/ for reference): the photo pistol and shotgun, and the Fantasy FPS Hands wand and
+lightning hands. Not shipped: art/anarch (CC0, unused) and rqpad.js (the developer's own on-screen pad, test scaffolding only).
 Individual Freedoom and Blasphemer artists are listed in art/enemies/*/CREDITS*.
 
 ## Reminder for the developer (noted 2026-11-14)
