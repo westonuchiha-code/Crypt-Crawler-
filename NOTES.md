@@ -151,3 +151,8 @@ Now (formulas sit under `hpMul` at the top of index.html; `python3 tools/balance
 - The HUD shows `HP n/max`.
 Result: ammo/health margin 2.5 -> 1.3 and hits-to-die 24 -> 11 from zone 1 to 10. Not touched: weapon stats, boss health,
 enemy rosters, and per-enemy stats (some no longer match their new sprites, e.g. 'rat' is a flesh worm).
+
+## Credits page (2026-11-14)
+Title menu -> "credits" opens `#credits` inside the overlay (`showCredits`; Esc / Enter / Space close it). It lists every
+outside resource and carries the full Freedoom, Blasphemer and three.js licence texts. CREDITS.md at the repo root is the
+master list, including which credits are legally required and two texture sources still unknown. Update both together.

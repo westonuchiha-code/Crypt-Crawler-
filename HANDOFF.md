@@ -81,5 +81,5 @@ python3 tools/live.py            # must say: errors: none
    and names to suit the new sprites, boss fights, and nothing new unlocks after floor 9.
 4. **Before release:**
    - set RQPad `onlyOnTouch: true`
-   - check the licences of the user-supplied packs (see art/README.md)
+   - confirm the two unknown texture sources in CREDITS.md (the in-game credits page lists everything else)
    - consider bundling three.js so the intro doesn't depend on the CDN

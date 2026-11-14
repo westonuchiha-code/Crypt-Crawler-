@@ -44,6 +44,16 @@
   #newclimb{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer;margin-top:-6px}
   @keyframes blink{50%{opacity:0}}
   #help{color:#777!important;font-size:11px!important}
+  /* credits and licences: a scrolling page over the menu */
+  #creditsbtn{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer}
+  #credits{display:none;position:absolute;inset:0;z-index:2;overflow-y:auto;background:#0b0606;padding:18px 16px 40px;box-sizing:border-box;text-transform:none;text-align:center}
+  #credits.on{display:block}
+  #credits h2{margin:0 0 4px;font:900 clamp(22px,5vw,40px)/1 Impact,'Arial Black',sans-serif;letter-spacing:3px;color:#ffb23a;text-transform:uppercase}
+  #credits h3{margin:22px 0 4px;color:#ff8a3a;font-size:12px;letter-spacing:4px;text-transform:uppercase}
+  #credits p{max-width:640px;margin:2px auto;color:#d8d0c0;font-size:13px;line-height:1.5}
+  #credits p small{color:#8a8078}
+  #credits pre{max-width:640px;margin:8px auto 0;padding:10px;text-align:left;white-space:pre-wrap;font:10px/1.45 ui-monospace,monospace;color:#8f877c;background:#140c0c;border:1px solid #2a1a1a}
+  #creditsclose{position:sticky;top:0;float:right;background:#200;border:1px solid #a33;color:#fff;font:700 13px ui-monospace,monospace;letter-spacing:2px;padding:6px 10px;cursor:pointer}
   #credit{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:space-between;padding:0 14px;color:#e33;font-size:12px;letter-spacing:2px}
   @media (max-height:460px){#overlay{gap:6px}#overlay h1{font-size:clamp(28px,7vw,52px)}#overlay p{font-size:11px}#help{display:none}#tag{font-size:11px}}
   button:hover{background:#e0b737}
@@ -61,11 +71,115 @@
 <div id="overlay">
   <h1 id="title">CRYPT CRAWLER</h1>
   <div id="tag">— climb the spire —</div>
-  <p id="intro">Erupt from the crypt, climb the Spire floor by floor, and slay the guardians on every fifth level.</p>
+  <p id="intro">Erupt from the crypt, climb the Spire floor by floor, and slay the guardian on every tenth floor.</p>
   <div id="hiscore"></div>
   <button id="go">PRESS START</button>
   <button id="newclimb" style="display:none">new climb (erase checkpoint)</button>
   <p id="help">Keys: WASD move · ←/→ turn · space fires · 1-5 weapons · M map &nbsp;|&nbsp; Pad: ✕ fire · □ gun · △ map · START</p>
+  <button id="creditsbtn">credits</button>
+  <div id="credits">
+    <button id="creditsclose">CLOSE ✕</button>
+    <h2>Credits</h2>
+    <p><small>Crypt Crawler uses the work of these people and projects. Thank you.</small></p>
+    <h3>Creatures and bosses</h3>
+    <p>Freedoom · the Freedoom project contributors<br><small>freedoom.github.io · 3-clause BSD licence, below</small></p>
+    <p>Blasphemer · the Blasphemer project contributors<br><small>github.com/Blasphemer/blasphemer · 3-clause BSD licence, below</small></p>
+    <h3>Weapons and hands</h3>
+    <p>FPS Weapon Sprites · Ragnar Random, from models by Quaternius<br><small>opengameart.org · CC0 (public domain)</small></p>
+    <p>Fantasy FPS Hands · Ragnar Random<br><small>opengameart.org · free to use</small></p>
+    <h3>Walls, floors and doors</h3>
+    <p>Dungeon and door tile sheets · Modular PSX Sewer Kit<br><small>zone tiles recoloured and repainted from these</small></p>
+    <h3>3D scenes</h3>
+    <p>three.js · the three.js authors<br><small>threejs.org · MIT licence, below</small></p>
+    <h3>Licences</h3>
+    <pre>Freedoom
+
+Copyright © 2001-2024
+Contributors to the Freedoom project.  All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+  * Neither the name of the Freedoom project nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS
+IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+For a list of contributors to the Freedoom project, see the file
+CREDITS.</pre>
+    <pre>Blasphemer
+
+Copyright (c) 2021
+Contributors to the Blasphemer project.  All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+  * Redistributions of source code must retain the above copyright 
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright 
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+  * Neither the name of the Blasphemer team nor the names of its 
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS
+IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+For a list of contributors to the Blasphemer project, see the file
+CREDITS.</pre>
+    <pre>three.js
+
+The MIT License
+
+Copyright © 2010-2021 three.js authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the &quot;Software&quot;), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.</pre>
+  </div>
   <div id="credit"><span>© 2026 CRYPT CRAWLER</span><span>CREDIT 1</span></div>
 </div>
 
@@ -2166,6 +2280,10 @@ const WEAPON_KEYS = { Digit1: 'pistol', Digit2: 'shotgun', Digit3: 'wand', Digit
 addEventListener('keydown', e => {
   if (introActive) { if (['Space', 'Enter', 'Escape'].includes(e.code) && canSkipIntro()) endIntro(); return; }
   if (endActive) { if (['Space', 'Enter', 'Escape'].includes(e.code) && !e.repeat && canSkipEnding()) finishEnding(); return; }
+  if ($('credits').classList.contains('on')) {               // credits page: its own keys, arrows scroll it
+    if (['Escape', 'Enter', 'Space'].includes(e.code) && !e.repeat) { e.preventDefault(); showCredits(false); }
+    return;
+  }
   if (PREVENT.has(e.code)) e.preventDefault();
   // arcade start: Enter / Space / Escape (pad ✕ or START) on a menu; short delay so held fire does not skip GAME OVER
   if (!running && !introActive && overlay.style.display !== 'none' && ['Enter', 'Space', 'Escape'].includes(e.code)
@@ -2187,13 +2305,16 @@ addEventListener('mousemove', e => {
 canvas.addEventListener('pointerdown', e => { if (running && e.pointerType === 'mouse') fire(); });
 addEventListener('resize', resize);
 addEventListener('rqpad:layout', resize);
-showMenu('CRYPT CRAWLER', 'Erupt from the crypt, climb the Spire floor by floor, and slay the guardians on every fifth level.', 'PRESS START');
+showMenu('CRYPT CRAWLER', 'Erupt from the crypt, climb the Spire floor by floor, and slay the guardian on every tenth floor.', 'PRESS START');
 $('go').addEventListener('click', () => {
   const cp = loadCheckpoint();
   if (cp && cp.floor > 1) { continueGame(cp); return; }      // a saved zone checkpoint beats starting over
   if (!introSeen) { introSeen = true; startIntro(); }
   else resetGame();
 });
+function showCredits(on) { $('credits').classList.toggle('on', on); if (on) $('credits').scrollTop = 0; menuShownAt = performance.now(); }
+$('creditsbtn').addEventListener('click', e => { e.stopPropagation(); showCredits(true); });
+$('creditsclose').addEventListener('click', e => { e.stopPropagation(); showCredits(false); });
 $('newclimb').addEventListener('click', e => {               // wipe the checkpoint and start from the crypt
   e.stopPropagation(); clearCheckpoint(); $('newclimb').style.display = 'none';
   $('go').textContent = 'PRESS START';
