@@ -45,6 +45,11 @@
   @keyframes blink{50%{opacity:0}}
   #help{color:#777!important;font-size:11px!important}
   /* credits and licences: a scrolling page over the menu */
+  /* settings (title and pause menus) */
+  #opts{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;color:#c8c0b0;font-size:11px;letter-spacing:2px}
+  #opts label{display:flex;align-items:center;gap:8px}
+  #opts input{width:120px;accent-color:#ff7a12;cursor:pointer}
+  #quit{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer}
   #creditsbtn{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer}
   #credits{display:none;position:absolute;inset:0;z-index:2;overflow-y:auto;background:#0b0606;padding:18px 16px 40px;box-sizing:border-box;text-transform:none;text-align:center}
   #credits.on{display:block}
@@ -75,7 +80,12 @@
   <div id="hiscore"></div>
   <button id="go">PRESS START</button>
   <button id="newclimb" style="display:none">new climb (erase checkpoint)</button>
-  <p id="help">Keys: WASD move · ←/→ turn · space fires · 1-9 guns, 0 fists · M map &nbsp;|&nbsp; Pad: ✕ fire · □ gun · △ map · START</p>
+  <p id="help">Keys: WASD move · ←/→ turn · space fires · 1-9 guns, 0 fists · M map · Esc pause &nbsp;|&nbsp; Pad: ✕ fire · □ gun · △ map · START</p>
+  <div id="opts">
+    <label>volume <input id="optvol" type="range" min="0" max="100" step="5"></label>
+    <label>mouse speed <input id="optsens" type="range" min="30" max="250" step="10"></label>
+  </div>
+  <button id="quit" style="display:none">quit to title</button>
   <button id="creditsbtn">credits</button>
   <div id="credits">
     <button id="creditsclose">CLOSE ✕</button>
@@ -913,7 +923,9 @@ function los(x0, y0, x1, y1) {
 // Enemy sounds go through msnd(m, 'see' | 'atk' | 'shot' | 'pain' | 'die' | 'act'). Everything is a no-op until
 // the first key press or click, when browsers allow audio to start.
 const SND = {}, sndLast = {};
-let actx = null, sndMaster = null, sndVolume = 0.7, actT = 4;
+// settings, kept per browser in localStorage 'cc_opts': master volume 0-1 and mouse turn speed (1 = default)
+const opts = Object.assign({ vol: 0.7, sens: 1 }, (() => { try { return JSON.parse(localStorage.getItem('cc_opts')) || {}; } catch (e) { return {}; } })());
+let actx = null, sndMaster = null, sndVolume = opts.vol, actT = 4;
 function audioInit() {
   if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
   const AC = window.AudioContext || window.webkitAudioContext;
@@ -970,10 +982,25 @@ function showMenu(title, text, go, dead) {
   $('hiscore').innerHTML = b.floor ? `TOP CLIMB &nbsp;<b>FLOOR ${b.floor}</b> &nbsp;·&nbsp; <b>${b.kills}</b> SLAIN` : 'TOP CLIMB &nbsp;<b>---</b>';
   const cp = loadCheckpoint(), canCont = cp && cp.floor > 1 && title !== 'SPIRE CONQUERED';
   if (canCont && !dead) $('go').textContent = `PRESS START · FLOOR ${cp.floor}`;
-  $('newclimb').style.display = canCont ? '' : 'none';
+  $('newclimb').style.display = canCont ? '' : 'none'; $('quit').style.display = 'none'; paused = false;
   overlay.style.display = 'flex'; menuShownAt = performance.now();
 }
-let menuShownAt = performance.now();
+let menuShownAt = performance.now(), paused = false;
+// ---- pause: Esc or P in play (or losing the mouse lock, or switching away from the tab) ----
+function pauseGame() {
+  if (!running) return;
+  running = false; paused = true;
+  $('title').textContent = 'PAUSED'; $('title').classList.remove('dead'); $('tag').style.display = 'none';
+  introEl.textContent = level > 0 ? `Floor ${level} · ${ZONES[zoneOf(level)].name}` : 'The entrance';
+  $('go').textContent = 'RESUME'; $('newclimb').style.display = 'none'; $('quit').style.display = '';
+  overlay.style.display = 'flex'; menuShownAt = performance.now();
+  for (const k in keys) keys[k] = false;
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+function resumeGame() {
+  paused = false; running = true; overlay.style.display = 'none'; $('quit').style.display = 'none';
+  try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+}
 function die() {
   sfx('death');
   const rec = saveBest(), cp = loadCheckpoint();
@@ -2646,7 +2673,8 @@ addEventListener('keydown', e => {
   if (PREVENT.has(e.code)) e.preventDefault();
   // arcade start: Enter / Space / Escape (pad ✕ or START) on a menu; short delay so held fire does not skip GAME OVER
   if (!running && !introActive && overlay.style.display !== 'none' && ['Enter', 'Space', 'Escape'].includes(e.code)
-      && !e.repeat && performance.now() - menuShownAt > 900) { $('go').click(); return; }
+      && !e.repeat && performance.now() - menuShownAt > (paused ? 250 : 900)) { $('go').click(); return; }
+  if (running && (e.code === 'Escape' || e.code === 'KeyP') && !e.repeat) { pauseGame(); return; }
   keys[e.code] = true;
   if (e.code === 'KeyM' && !e.repeat) mapOn = !mapOn;
   if (WEAPON_KEYS[e.code] && running && P.owned[WEAPON_KEYS[e.code]]) { P.weapon = WEAPON_KEYS[e.code]; showMsg(WEAPONS[P.weapon].name); }
@@ -2659,7 +2687,7 @@ const canSkipIntro = () => introActive && performance.now() - introStartedAt > 7
 addEventListener('pointerdown', e => { if (canSkipEnding() && !(e.target.closest && e.target.closest('.rqp-root'))) finishEnding(); });
 addEventListener('pointerdown', e => { if (canSkipIntro() && !(e.target.closest && e.target.closest('.rqp-root'))) endIntro(); });
 addEventListener('mousemove', e => {
-  if (running && document.pointerLockElement === canvas) P.a += e.movementX * 0.0022;
+  if (running && document.pointerLockElement === canvas) P.a += e.movementX * 0.0022 * opts.sens;
 });
 canvas.addEventListener('pointerdown', e => { if (running && e.pointerType === 'mouse') fire(); });
 addEventListener('resize', resize);
@@ -2667,11 +2695,26 @@ addEventListener('rqpad:layout', resize);
 showMenu('CRYPT CRAWLER', 'Erupt from the crypt, climb the Spire floor by floor, and slay the guardian on every tenth floor.', 'PRESS START');
 $('go').addEventListener('click', () => {
   audioInit(); sfx('switch');
+  if (paused) { resumeGame(); return; }
   const cp = loadCheckpoint();
   if (cp && cp.floor > 1) { continueGame(cp); return; }      // a saved zone checkpoint beats starting over
   if (!introSeen) { introSeen = true; startIntro(); }
   else resetGame();
 });
+// settings sliders
+$('optvol').value = Math.round(opts.vol * 100); $('optsens').value = Math.round(opts.sens * 100);
+const saveOpts = () => { try { localStorage.setItem('cc_opts', JSON.stringify(opts)); } catch (e) {} };
+$('optvol').addEventListener('input', e => { opts.vol = sndVolume = e.target.value / 100; if (sndMaster) sndMaster.gain.value = sndVolume; saveOpts(); });
+$('optvol').addEventListener('change', () => { audioInit(); sfx('ewand'); });       // a test shot at the new volume
+$('optsens').addEventListener('input', e => { opts.sens = e.target.value / 100; saveOpts(); });
+for (const id of ['optvol', 'optsens']) $(id).addEventListener('click', e => e.stopPropagation());
+$('quit').addEventListener('click', e => {
+  e.stopPropagation();
+  showMenu('CRYPT CRAWLER', 'Erupt from the crypt, climb the Spire floor by floor, and slay the guardian on every tenth floor.', 'PRESS START');
+});
+// the browser takes Esc itself to release the mouse, so losing the lock is how a pause usually arrives
+document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && running) pauseGame(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && running) pauseGame(); });
 function showCredits(on) { $('credits').classList.toggle('on', on); if (on) $('credits').scrollTop = 0; menuShownAt = performance.now(); }
 $('creditsbtn').addEventListener('click', e => { e.stopPropagation(); showCredits(true); });
 $('creditsclose').addEventListener('click', e => { e.stopPropagation(); showCredits(false); });

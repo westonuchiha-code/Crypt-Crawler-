@@ -211,3 +211,8 @@ All in `generate()` after the stairs are placed (block "floor variety"), then us
   ammo sizing). Bursting hurts everything within 2.2 cells, the player too, and chains to other pods.
 - A 400-floor generation test confirmed: key always reachable without the door, stairs and all loot and enemies reachable.
 Not done from this item: traps other than pods.
+
+## Pause and settings (2026-11-14)
+Esc or P in play calls `pauseGame()` (also on losing pointer lock, which is how Esc usually arrives, and on tab switch);
+the overlay shows PAUSED with RESUME (`resumeGame`) and "quit to title" (the checkpoint is kept). Settings sliders
+`#optvol` and `#optsens` sit on the title and pause menus and are saved in localStorage `cc_opts` (`opts.vol`, `opts.sens`).

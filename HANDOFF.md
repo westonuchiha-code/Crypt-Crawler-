@@ -76,13 +76,17 @@ python3 tools/live.py            # must say: errors: none
 - **Menus:** arcade style (`showMenu`). The best run is saved in localStorage `cc_best`; the checkpoint in `cc_save`.
 
 ## Next steps
-1. **Step 4, the ending:** done (see NOTES.md, "Ending"): passage, last door, the two moons, wide shot, SPIRE CONQUERED
-   and a credit roll, then the menu.
-2. **Unused buttons:** wire ○, L1/R1 (previous/next gun?), L2/R2 and START (pause menu). The user hasn't decided; ask.
-3. **Balance:** first pass done (see NOTES.md, "Balance pass"; check with tools/balance.py). Still open: per-enemy stats
-   and names to suit the new sprites, boss fights, and nothing new unlocks after floor 9.
-4. **Before release:**
-   - set RQPad `onlyOnTouch: true`
+Done on 2026-11-14 (details in NOTES.md): ending cutscene, new enemy art with animation, balance pass, credits page, sound
+effects, enemy behaviours and boss moves, weapon power per zone, armour and power-ups, pack weapons, floor variety,
+pause menu and settings. The user tests by playing; much of this is tuned by simulation only and needs their feedback.
+1. **Feedback round:** fix whatever the user reports from play-testing (sounds were picked by file name, new weapons
+   and boss fights are untuned).
+2. **Music:** none yet. Needs a source the user is happy with (Freedoom has BSD-licensed music as MIDI-style lumps).
+3. **Traps** beyond explosive pods, if wanted.
+4. **Unused pad buttons:** ○, L1/R1, L2/R2 are unwired, but the pad is test scaffolding, so low priority.
+5. **Before release:**
+   - remove the on-screen pad (or set RQPad `onlyOnTouch: true`)
    - **remind the user:** the wall/floor/door textures are from a pack they bought on itch.io; they will look up its
      name and licence later (steps in CREDITS.md, "Reminder"). Everything else is on the in-game credits page.
-   - consider bundling three.js so the intro doesn't depend on the CDN
+   - bundle three.js so the intro and ending don't depend on the CDN
+   - wrap as a desktop app for Steam / itch.io
