@@ -295,3 +295,12 @@ floor; Star-Eater and Spire Titan moves eased.
   the crosshair for 0.7 s (top = ahead, bottom = behind). Spike traps pass no source, so they show none.
 - Star-Eater (floor 90): reappears 3.2 cells away (was 2.6) and cannot strike for 1.6 s after a blink.
   Bot, zones 9-10, three runs each: normal 1 death at floor 90 and 3 at floor 100; hard 4 and 14.
+
+## Code split, full screen, field of view (2026-11-15)
+- **index.html is now generated.** Source lives in src/ (see src/README.md); `python3 tools/build.py` joins it. The split
+  was verified byte-identical to the single file it replaced. Notes above that say "in index.html" now mean the matching
+  file in src/game/. Publish the built index.html as before.
+- Full screen: `toggleFullscreen()` on F (rebindable, `K.full`) and a settings button. An embedding page can forbid
+  full screen (the Claude artifact frame may), in which case the call is silently ignored.
+- Field of view: `opts.fov` in degrees (55-100, default 67), slider `#optfov`; `setFov` sets `FOV_PLANE`.
+- The user does not want a tutorial ("everyone knows how to play a Doom-type game").

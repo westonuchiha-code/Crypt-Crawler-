@@ -1,7 +1,8 @@
 """Live smoke test: plays each weapon for real (loop running, monsters ahead) and reports page errors."""
-import os
+import os, sys, subprocess
 from playwright.sync_api import sync_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'build.py')], check=True)   # test what src/ says, not a stale page
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])
     pg = b.new_page(viewport={'width': 640, 'height': 400})

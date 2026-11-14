@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crypt Crawler</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:ui-monospace,Menlo,Consolas,monospace;color:#ddd;user-select:none}
+  #game{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+  /* PS1-style intro render (Three.js), letterboxed 16:9 */
+  #intro3d{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(100vw,177.78vh);height:min(100vh,56.25vw);image-rendering:pixelated;display:none;background:#000}
+  #intro3d.on{display:block}
+  #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+  #caption{position:fixed;left:0;right:0;bottom:14%;text-align:center;font-size:clamp(12px,2.2vw,20px);padding:0 10px;box-sizing:border-box;color:#f2e6c0;text-shadow:0 2px 4px #000;letter-spacing:2px;pointer-events:none;display:none}
+  body.intro #hud,body.intro #msg{display:none}
+  /* ending: title and credit roll laid over the cutscene */
+  #endtitle,#endroll{position:fixed;display:none;pointer-events:none;text-align:center;text-transform:uppercase;overflow:hidden}
+  #endtitle{white-space:nowrap;font:900 40px/1 Impact,'Arial Black','Roboto Condensed',sans-serif;letter-spacing:2px;transition:opacity 1.5s;opacity:0;
+    background:linear-gradient(#fff6a8 0%,#ffd23a 30%,#ff7a12 60%,#c41a08 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 2px 0 #300) drop-shadow(0 0 12px rgba(0,0,0,.8))}
+  #endroll{-webkit-mask-image:linear-gradient(transparent,#000 18%,#000 82%,transparent);mask-image:linear-gradient(transparent,#000 18%,#000 82%,transparent)}
+  #endin{color:#f2e6c0;text-shadow:0 2px 4px #000,0 0 8px #000;letter-spacing:.12em;line-height:1.9;will-change:transform}
+  #endin b{display:block;color:#ffb060;font-size:.8em;letter-spacing:4px;margin-top:1.6em}
+  #hud{position:fixed;left:12px;top:12px;right:90px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;pointer-events:none;text-shadow:0 1px 2px #000;font-size:14px}
+  #hpbar{width:180px;height:12px;border:1px solid #777;background:#300}
+  #hpfill{height:100%;width:100%;background:#c93030;transition:width .15s}
+  #msg{position:fixed;top:44px;left:0;right:0;text-align:center;text-shadow:0 1px 3px #000;pointer-events:none;transition:opacity .6s;font-size:16px;color:#f0d890;opacity:0}
+  /* ---- arcade-style menus ---- */
+  #overlay{overflow-y:auto;position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:12px;text-align:center;padding:16px;box-sizing:border-box;
+    background:radial-gradient(ellipse at 50% 40%,rgba(60,0,0,.55),rgba(0,0,0,.92) 70%);font-family:ui-monospace,'Courier New',monospace;text-transform:uppercase}
+  #overlay::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px)}   /* CRT scanlines */
+  #overlay h1{margin:0;font:900 clamp(34px,8.5vw,84px)/0.9 Impact,'Arial Black','Roboto Condensed',sans-serif;letter-spacing:2px;
+    transform:perspective(300px) rotateX(14deg) scaleY(1.25);
+    background:linear-gradient(#fff6a8 0%,#ffd23a 22%,#ff7a12 48%,#c41a08 72%,#5a0600 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 2px 0 #300) drop-shadow(0 4px 0 #200) drop-shadow(0 6px 0 #100) drop-shadow(0 0 18px rgba(255,80,0,.55))}
+  #overlay h1.dead{background:linear-gradient(#ff8a8a,#d00 50%,#400);-webkit-background-clip:text;background-clip:text}
+  #tag{color:#ff8a3a;letter-spacing:6px;font-size:13px;margin:14px 0 2px;text-shadow:0 0 8px #f40}
+  #overlay p{max-width:560px;line-height:1.5;margin:0;color:#c8c0b0;font-size:13px}
+  #hiscore{color:#ffe14a;font-size:15px;letter-spacing:3px;text-shadow:0 0 6px #fa0}
+  #hiscore b{color:#fff}
+  #go{background:none;border:0;color:#fff;font:700 clamp(16px,3.4vw,24px) ui-monospace,'Courier New',monospace;letter-spacing:4px;padding:10px 18px;cursor:pointer;
+    text-shadow:0 0 6px #f40,0 0 14px #f20;animation:blink 1s steps(2) infinite}
+  #go:hover{color:#ffe14a}
+  #newclimb{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer;margin-top:-6px}
+  @keyframes blink{50%{opacity:0}}
+  #help{color:#777!important;font-size:11px!important}
+  /* credits and licences: a scrolling page over the menu */
+  /* settings (title and pause menus) */
+  #opts{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;color:#c8c0b0;font-size:11px;letter-spacing:2px}
+  #opts label{display:flex;align-items:center;gap:8px}
+  #opts input{width:120px;accent-color:#ff7a12;cursor:pointer}
+  #overlay>*{flex-shrink:0}
+  #links{display:flex;gap:22px;flex-wrap:wrap;justify-content:center}
+  @media (max-height:460px){#opts{gap:6px 14px;font-size:9px}#opts input{width:64px}#overlay{justify-content:flex-start;padding-top:8px}}
+  #optfull{background:#200;border:1px solid #a33;color:#ffd23a;font:700 11px ui-monospace,monospace;letter-spacing:2px;text-transform:uppercase;padding:4px 10px;cursor:pointer}
+  #optdiff{background:#200;border:1px solid #a33;color:#ffd23a;font:700 11px ui-monospace,monospace;letter-spacing:2px;text-transform:uppercase;padding:4px 10px;cursor:pointer;min-width:74px}
+  #keysbtn,#keyreset{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer}
+  #keypanel{display:none;position:absolute;inset:0;z-index:2;overflow-y:auto;background:#0b0606;padding:18px 16px 40px;box-sizing:border-box;text-align:center}
+  #keypanel.on{display:block}
+  #keypanel h2{margin:0 0 6px;font:900 clamp(22px,5vw,40px)/1 Impact,'Arial Black',sans-serif;letter-spacing:3px;color:#ffb23a}
+  #keypanel table{margin:8px auto 12px;border-collapse:collapse;font-size:12px;color:#d8d0c0}
+  #keypanel td{padding:3px 14px;text-align:left}
+  #keypanel td button{min-width:90px;background:#200;border:1px solid #a33;color:#ffd23a;font:700 12px ui-monospace,monospace;padding:4px 8px;cursor:pointer}
+  #keypanel td button.wait{background:#a33;color:#fff}
+  #keyclose{position:sticky;top:0;float:right;background:#200;border:1px solid #a33;color:#fff;font:700 13px ui-monospace,monospace;letter-spacing:2px;padding:6px 10px;cursor:pointer}
+  #records{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer}
+  #recpanel{display:none;position:absolute;inset:0;z-index:2;overflow-y:auto;background:#0b0606;padding:18px 16px 40px;box-sizing:border-box;text-align:center}
+  #recpanel.on{display:block}
+  #recpanel h2{margin:0 0 10px;font:900 clamp(22px,5vw,40px)/1 Impact,'Arial Black',sans-serif;letter-spacing:3px;color:#ffb23a}
+  #recpanel table{margin:8px auto;border-collapse:collapse;font-size:12px;color:#d8d0c0}
+  #recpanel td{padding:3px 14px;text-align:left}#recpanel td:last-child{text-align:right;color:#ffe14a}
+  #recclose{position:sticky;top:0;float:right;background:#200;border:1px solid #a33;color:#fff;font:700 13px ui-monospace,monospace;letter-spacing:2px;padding:6px 10px;cursor:pointer}
+  #quit{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer}
+  #creditsbtn{background:none;border:0;color:#a88;font:12px ui-monospace,monospace;letter-spacing:2px;text-decoration:underline;cursor:pointer}
+  #credits{display:none;position:absolute;inset:0;z-index:2;overflow-y:auto;background:#0b0606;padding:18px 16px 40px;box-sizing:border-box;text-transform:none;text-align:center}
+  #credits.on{display:block}
+  #credits h2{margin:0 0 4px;font:900 clamp(22px,5vw,40px)/1 Impact,'Arial Black',sans-serif;letter-spacing:3px;color:#ffb23a;text-transform:uppercase}
+  #credits h3{margin:22px 0 4px;color:#ff8a3a;font-size:12px;letter-spacing:4px;text-transform:uppercase}
+  #credits p{max-width:640px;margin:2px auto;color:#d8d0c0;font-size:13px;line-height:1.5}
+  #credits p small{color:#8a8078}
+  #credits pre{max-width:640px;margin:8px auto 0;padding:10px;text-align:left;white-space:pre-wrap;font:10px/1.45 ui-monospace,monospace;color:#8f877c;background:#140c0c;border:1px solid #2a1a1a}
+  #creditsclose{position:sticky;top:0;float:right;background:#200;border:1px solid #a33;color:#fff;font:700 13px ui-monospace,monospace;letter-spacing:2px;padding:6px 10px;cursor:pointer}
+  #credit{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:space-between;padding:0 14px;color:#e33;font-size:12px;letter-spacing:2px}
+  @media (max-height:460px){#overlay{gap:6px}#overlay h1{font-size:clamp(28px,7vw,52px)}#overlay p{font-size:11px}#help{display:none}#tag{font-size:11px}}
+  button:hover{background:#e0b737}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<canvas id="intro3d"></canvas>
+<div id="flash"></div>
+<div id="caption"></div>
+<div id="endtitle">SPIRE CONQUERED</div>
+<div id="endroll"><div id="endin"></div></div>
+<div id="msg"></div>
+<div id="hud"><div id="hpbar"><div id="hpfill"></div></div><div id="stats"></div></div>
+<div id="overlay">
+  <h1 id="title">CRYPT CRAWLER</h1>
+  <div id="tag">— climb the spire —</div>
+  <p id="intro">Erupt from the crypt, climb the Spire floor by floor, and slay the guardian on every tenth floor.</p>
+  <div id="hiscore"></div>
+  <button id="go">PRESS START</button>
+  <button id="newclimb" style="display:none">new climb (erase checkpoint)</button>
+  <p id="help"></p>
+  <div id="opts">
+    <label>volume <input id="optvol" type="range" min="0" max="100" step="5"></label>
+    <label>music <input id="optmus" type="range" min="0" max="100" step="5"></label>
+    <label>difficulty <button id="optdiff" type="button">normal</button></label>
+    <label>view <input id="optfov" type="range" min="55" max="100" step="1"></label>
+    <label><button id="optfull" type="button">full screen</button></label>
+    <label>mouse speed <input id="optsens" type="range" min="30" max="250" step="10"></label>
+  </div>
+  <div id="links"><button id="quit" style="display:none">quit to title</button><button id="keysbtn">controls</button><button id="records">records</button><button id="creditsbtn">credits</button></div>
+  <div id="keypanel"><button id="keyclose">CLOSE ✕</button><h2>CONTROLS</h2><p id="keyhint">Click an action, then press the key you want for it.</p><table id="keytable"></table><button id="keyreset">reset to defaults</button></div>
+  <div id="recpanel"><button id="recclose">CLOSE ✕</button><h2>RECORDS</h2><table id="rectable"></table></div>
+  <div id="credits">
+    <button id="creditsclose">CLOSE ✕</button>
+    <h2>Credits</h2>
+    <p><small>Crypt Crawler uses the work of these people and projects. Thank you.</small></p>
+    <h3>Creatures, bosses and sound effects</h3>
+    <p>Freedoom · the Freedoom project contributors<br><small>freedoom.github.io · 3-clause BSD licence, below</small></p>
+    <p>Blasphemer · the Blasphemer project contributors<br><small>github.com/Blasphemer/blasphemer · 3-clause BSD licence, below</small></p>
+    <h3>Weapons and hands</h3>
+    <p>Guns, staffs and wands · Freedoom and Blasphemer<br><small>same projects and licences as the creatures</small></p>
+    <p>Fist · FPS Weapon Sprites by Ragnar Random, from models by Quaternius<br><small>opengameart.org · CC0 (public domain)</small></p>
+    <h3>Walls, floors and doors</h3>
+    <p>Dungeon and door tile sheets · Modular PSX Sewer Kit<br><small>zone tiles recoloured and repainted from these</small></p>
+    <h3>Music</h3>
+    <p>Freedoom soundtrack · the Freedoom project contributors<br><small>played with the FluidR3 GM soundfont by Frank Wen (MIT licence)</small></p>
+    <h3>3D scenes</h3>
+    <p>three.js · the three.js authors<br><small>threejs.org · MIT licence, below</small></p>
+    <h3>Licences</h3>
+    <pre>Freedoom
+
+Copyright © 2001-2024
+Contributors to the Freedoom project.  All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+  * Neither the name of the Freedoom project nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS
+IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+For a list of contributors to the Freedoom project, see the file
+CREDITS.</pre>
+    <pre>Blasphemer
+
+Copyright (c) 2021
+Contributors to the Blasphemer project.  All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+  * Redistributions of source code must retain the above copyright 
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright 
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+  * Neither the name of the Blasphemer team nor the names of its 
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS
+IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+For a list of contributors to the Blasphemer project, see the file
+CREDITS.</pre>
+    <pre>three.js
+
+The MIT License
+
+Copyright © 2010-2021 three.js authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the &quot;Software&quot;), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.</pre>
+  </div>
+  <div id="credit"><span>© 2026 CRYPT CRAWLER</span><span>CREDIT 1</span></div>
+</div>
+
+<script src="three.min.js"></script>   <!-- three.js r128 (MIT), bundled so the intro and ending work offline -->
+<script src="rqpad.js"></script>
+<script src="sounds.js"></script>   <!-- generated by tools/pack_sounds.py; the game is silent if it is missing -->
+<script src="assets.js"></script>   <!-- generated by tools/pack_assets.py; the game falls back to drawn weapons if it is missing -->
+<script>
+/*@GAME_SCRIPT@*/</script>
+</body>
+</html>
