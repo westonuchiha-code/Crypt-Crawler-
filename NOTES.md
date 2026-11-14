@@ -129,3 +129,13 @@ Zones 4-10 reuse tile mixes and the 3 boss sprites cycle; step 3 gives each zone
 `victoryMenu()`. Without Three.js/WebGL it goes straight to the menu. Shots are keyed in `END_CAM`, captions in `END_CAPS`,
 credit roll text in `END_CREDITS`; the scene is built once in `buildEnding()` (seeded, so it is the same every time).
 Skippable after 2.5 s (tap, or pad ✕). Test: serve three r128 locally, then `__cc.eval("victory()")` and set `ending.t`.
+
+## Enemy art (2026-11-14): Freedoom + Blasphemer sprites, animated
+The user rejected the code-drawn enemies. All 13 kinds and 10 bosses now use real sprite sets (see art/README.md for the
+licence duty). tools/enemy_cast.py is the one table to edit: kind -> sprite set, prefix, height in wall heights, and the
+frame letters for walk / attack / pain / death. tools/pack_assets.py packs them as palette PNGs into `MONSTERS`
+(`k`, `walk`, `atk`, `pain`, `die`, `frames: [uri, ox, oy]`). In index.html: `MON_PX`, `monArtKey`, the frame choice in
+`renderSprites`, and `drawMonsterSprite` (anchored at each frame's origin, so floaters hover and corpses lie flat).
+Dead monsters stay in `monsters` as corpses (`m.dead`, `m.dieT`, last death frame) until the next floor is generated.
+`m.scale`, the old lunge/swell and tools/draw_monsters.py are no longer used for anything but the no-assets fallback.
+pack_assets.py needs Pillow, numpy and scipy. To look at enemies in game, spawn them with `__cc.eval` and screenshot.

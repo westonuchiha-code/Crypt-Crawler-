@@ -25,7 +25,9 @@ that slug, make a new artifact with the same three files and give the user the l
 | rqpad.js | The user's own on-screen controller. **Use it exactly as it is; never edit or restyle it.** |
 | tools/pack_assets.py | Builds assets.js from art/. Run after any art change. |
 | tools/make_tiles.py | Makes the zone 4-10 tiles from the user's photo tiles (tint and painted detail). |
-| tools/draw_monsters.py | Draws every enemy and boss in code (idle and attack frames), into art/monsters. |
+| tools/enemy_cast.py | The enemy cast: which sprite and which animation frames each enemy and boss uses. |
+| tools/import_enemies.py | Copies the needed frames from Freedoom / Blasphemer checkouts into art/enemies. |
+| tools/draw_monsters.py | Old: drew enemies in code (rejected). Kept for reference. |
 | tools/live.py | Smoke test: plays every weapon on several floors. Must print `errors: none`. |
 | tools/shoot.py | Screenshot contact sheet of weapon animations. |
 | tools/compose_weapons.py, render_monsters.py, mockup.py | Old pipelines (cut weapons, rejected 3D-model monsters). Kept for reference. |
@@ -34,7 +36,6 @@ that slug, make a new artifact with the same three files and give the user the l
 ## Build and check (do this before every publish)
 ```
 python3 tools/make_tiles.py      # only if tiles changed
-python3 tools/draw_monsters.py   # only if monsters changed
 python3 tools/pack_assets.py     # always after art changes
 # syntax check of the inline script (does NOT catch load-order/TDZ errors):
 python3 -c "import re;s=open('index.html').read();open('/tmp/i.js','w').write(max(re.findall(r'<script>(.*?)</script>',s,re.S),key=len))" && node --check /tmp/i.js
@@ -65,8 +66,8 @@ python3 tools/live.py            # must say: errors: none
   lightning 9. The role of each weapon is written above the `WEAPONS` table.
 - **Zones:** `ZONES`, `THEMES`, `ROSTERS` and `BOSS_HP` sit near the top of the script. Difficulty scales by zone
   (`hpMul`, `dmgMul`), never by raw floor number. Zones 6-10 have no ceiling and use open-sky panoramas (`skyPano`).
-- **Enemies:** 13 regular kinds plus 10 bosses (boss1 to boss10), all drawn in tools/draw_monsters.py. Each has two
-  frames; on attack the enemy lunges and swells.
+- **Enemies:** 13 regular kinds plus 10 bosses (boss1 to boss10), using Freedoom and Blasphemer sprites (BSD licence, the
+  notice must ship with the game) with walk, attack, pain and death frames. The cast table is tools/enemy_cast.py.
 - **Controls:** RQPad in dock layout. ✕ fire, □ next gun, △ map. Movement is analog with easing (`MOVE_SPEED`,
   `TURN_SPEED` and friends in `update`).
 - **Menus:** arcade style (`showMenu`). The best run is saved in localStorage `cc_best`; the checkpoint in `cc_save`.

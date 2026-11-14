@@ -143,6 +143,19 @@ def tip_of(im):
     return [round(sum(xs) / len(xs)), top]
 
 
+def pal_uri(im):
+    """Palette PNG (index 0 transparent) when the frame has at most 255 colours, as the enemy art does: far smaller."""
+    px = im.tobytes(); n = im.width * im.height
+    cols = sorted({px[i * 4:i * 4 + 3] for i in range(n) if px[i * 4 + 3]})
+    if len(cols) > 255: return data_uri(im)
+    idx = {c: i + 1 for i, c in enumerate(cols)}
+    q = Image.new('P', im.size)
+    q.putdata([idx[px[i * 4:i * 4 + 3]] if px[i * 4 + 3] else 0 for i in range(n)])
+    q.putpalette(b'\0\0\0' + b''.join(cols))
+    buf = io.BytesIO(); q.save(buf, 'PNG', optimize=True, transparency=0)
+    return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
+
+
 def data_uri(im):
     buf = io.BytesIO(); im.save(buf, 'PNG', optimize=True)
     return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
@@ -179,43 +192,35 @@ with open(out, 'w') as fh:
             im = Image.open(os.path.join(ROOT, 'art', 'tiles', f)).convert('RGB').resize((64, 64), Image.BOX)
             tiles[f[:-4]] = data_uri(im)
     fh.write('window.TILES = ' + json.dumps(tiles) + ';\n')
-    # enemy sprites: art/monsters/<kind>_<0 idle|1 attack>.png (from tools/render_monsters.py) -> window.MONSTERS
-    # Both frames are cropped to one shared box (feet at the bottom) and pixelated so the idle body is 64 px tall.
-    mons, mdir = {}, os.path.join(ROOT, 'art', 'monsters')
-    kinds = sorted({f.rsplit('_', 1)[0] for f in os.listdir(mdir) if f.endswith('.png')}) if os.path.isdir(mdir) else []
-    for kind in kinds:
-        fr = [Image.open(os.path.join(mdir, f'{kind}_{i}.png')).convert('RGBA') for i in (0, 1)]
-        idle_bb = fr[0].getbbox()
-        bbs = [f.getbbox() for f in fr]
-        box = (min(b[0] for b in bbs), min(b[1] for b in bbs), max(b[2] for b in bbs), max(b[3] for b in bbs))
-        k = 64 / (idle_bb[3] - idle_bb[1])
-        size = (max(1, round((box[2] - box[0]) * k)), max(1, round((box[3] - box[1]) * k)))
-        frames_px = []
-        for f in fr:
-            c = f.crop(box)
-            # premultiplied downscale so edges do not pick up black fringes, then hard alpha + 1 px dark outline
-            pm = Image.new('RGBA', c.size); px = c.load(); pp = pm.load()
-            for y in range(c.height):
-                for x in range(c.width):
-                    r, g, bl, a = px[x, y]; pp[x, y] = (r * a // 255, g * a // 255, bl * a // 255, a)
-            sm = pm.resize(size, Image.BOX); sp = sm.load()
-            for y in range(size[1]):
-                for x in range(size[0]):
-                    r, g, bl, a = sp[x, y]
-                    if a < 110: sp[x, y] = (0, 0, 0, 0)
-                    else:
-                        m = 255 / a * 1.15          # un-premultiply, slightly brighter for the dark dungeon
-                        sp[x, y] = (min(255, int(r * m)), min(255, int(g * m)), min(255, int(bl * m)), 255)
-            o = sm.copy(); op = o.load()
-            for y in range(size[1]):
-                for x in range(size[0]):
-                    if sp[x, y][3] == 0 and any(0 <= x + dx < size[0] and 0 <= y + dy < size[1] and sp[x + dx, y + dy][3]
-                                                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-                        op[x, y] = (12, 8, 10, 255)
-            frames_px.append(o)
-        frames_px[0].save(f'/tmp/mon_{kind}.png')
-        mons[kind] = {'frames': [data_uri(o) for o in frames_px], 'tall': round(size[1] / 64, 3)}
-        print('monster', kind, size)
+    # enemy sprites: the cast in tools/enemy_cast.py, frames from art/enemies/<set>/ (see tools/import_enemies.py).
+    # window.MONSTERS[kind] = { k: wall heights per sprite pixel, walk/atk/die: frame indexes, pain: index,
+    #                           frames: [[png data uri, origin x, origin y], ...] }; the origin stands on the floor.
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from enemy_cast import CAST, SETS
+    mons, offs = {}, {}
+    for sname in SETS.values():
+        for line in open(os.path.join(ROOT, 'art', 'enemies', sname, 'offsets.txt')):
+            b, ox, oy = line.split(); offs[(sname, b)] = (int(ox), int(oy))
+    for kind, (sset, pre, tall, walk, atk, pain, die) in CAST.items():
+        sname = SETS[sset]; edir = os.path.join(ROOT, 'art', 'enemies', sname)
+        byletter = {f[4].upper(): f[:-4] for f in sorted(os.listdir(edir)) if f.startswith(pre) and f.endswith('.png')}
+        frames, index = [], {}
+        def use(letters):
+            out = []
+            for L in letters:
+                if L not in byletter: raise SystemExit(f'{kind}: no frame {L} for {pre}')
+                if L not in index:
+                    b = byletter[L]; im = Image.open(os.path.join(edir, b + '.png')).convert('RGBA')
+                    ox, oy = offs.get((sname, b), (im.width // 2, im.height))
+                    box = im.getbbox() or (0, 0, 1, 1); im = im.crop(box)      # trim empty borders, keep the origin
+                    im.putalpha(im.getchannel('A').point(lambda a: 255 if a >= 128 else 0))
+                    index[L] = len(frames); frames.append([pal_uri(im), ox - box[0], oy - box[1], im.height])
+                out.append(index[L])
+            return out
+        w, a, pn, d = use(walk), use(atk), use(pain), use(die)
+        mons[kind] = {'k': round(tall / frames[w[0]][3], 5), 'walk': w, 'atk': a, 'pain': pn[0], 'die': d,
+                      'frames': [f[:3] for f in frames]}
+    print('monsters', len(mons), 'kinds,', sum(len(m['frames']) for m in mons.values()), 'frames')
     fh.write('window.MONSTERS = ' + json.dumps(mons) + ';\n')
 print('wrote', out, os.path.getsize(out) // 1024, 'KB')
 

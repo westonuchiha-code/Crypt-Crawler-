@@ -391,22 +391,24 @@ const SPR = {
   potion: potionTex(), crate: crateTex(), ammo: ammoTex(), fire: fireTex(), stairs: stairsTex(), arrow: arrowTex(), magic: magicTex()
 };
 
-// Enemy sprites rendered from the megapack models (art/monsters, packed into assets.js as window.MONSTERS).
-// MON_PX[kind] = { frames: [idle, attack] (Uint32Array with .w/.h), tall } once decoded; drawn 32x32 SPR stay as fallback.
+// Enemy sprites (Freedoom and Blasphemer art, packed into assets.js as window.MONSTERS by tools/pack_assets.py).
+// MON_PX[kind] = { frames: [Uint32Array with .w .h .ox .oy], k, walk, atk, pain, die } once every frame has decoded;
+// (ox, oy) is the point of the frame that stands on the floor and k is wall heights per sprite pixel.
+// The drawn 32x32 SPR sprites stay as the fallback when assets.js is missing.
 const MON_PX = {};
 if (window.MONSTERS) for (const k in MONSTERS) {
-  const frames = [];
-  MONSTERS[k].frames.forEach((src, i) => {
+  const M = MONSTERS[k], frames = []; let left = M.frames.length;
+  M.frames.forEach(([src, ox, oy], i) => {
     const im = new Image();
     im.onload = () => {
       const c = mk(im.width, im.height); c.getContext('2d').drawImage(im, 0, 0);
-      const px = toPixels(c); px.w = im.width; px.h = im.height; frames[i] = px;
-      if (frames.filter(Boolean).length === MONSTERS[k].frames.length) MON_PX[k] = { frames, tall: MONSTERS[k].tall };
+      const px = toPixels(c); px.w = im.width; px.h = im.height; px.ox = ox; px.oy = oy; frames[i] = px;
+      if (--left === 0) MON_PX[k] = { frames, k: M.k, walk: M.walk, atk: M.atk, pain: M.pain, die: M.die };
     };
     im.src = src;
   });
 }
-const MON_H = 0.95;   // idle body height in wall heights at scale 1 (walls are 1 tall)
+const ATK_T = 0.4, DIE_FPS = 9, WALK_FPS = 6;   // attack animation length (s), death and walk frame rates
 
 // ---------- state ----------
 const keys = {};
@@ -728,7 +730,7 @@ function hurtMonster(m, dmg, knock = 0, stun = 0, fx = P.x, fy = P.y) {
   }
   if (stun) m.stun = Math.max(m.stun || 0, stun * (m.boss ? 0.3 : 1));
   if (m.hp <= 0) {
-    m.dead = true; kills++;
+    m.dead = true; m.dieT = 0; m.art = monArtKey(m); kills++;
     // enemies sometimes drop a little ammo; bosses always leave a weapon crate and an ammo box
     if (m.boss) { items.push({ x: m.x, y: m.y, kind: 'crate', taken: false }, { x: m.x + 0.3, y: m.y, kind: 'ammo', taken: false }); }
     else if (Math.random() < 0.3) items.push({ x: m.x, y: m.y, kind: 'drop', taken: false });
@@ -776,7 +778,7 @@ function fire() {
 function spawnShot(m) {
   const d = Math.hypot(P.x - m.x, P.y - m.y) || 1;
   const sp = m.boss ? 4.2 : 3.2;
-  m.atk = 0.35;
+  m.atk = ATK_T;
   shots.push({ x: m.x, y: m.y, vx: (P.x - m.x) / d * sp, vy: (P.y - m.y) / d * sp, life: 4, dmg: Math.round((m.boss ? 10 : 4) * dmgMul(level)) });
 }
 function updateShots(dt) {
@@ -973,8 +975,8 @@ function drawArrowShots() {
 
 function updateMonsters(dt) {
   for (const m of monsters) {
-    if (m.dead) continue;
-    m.hurt -= dt; m.mcool -= dt; m.rcool -= dt; m.atk = (m.atk || 0) - dt;
+    if (m.dead) { m.dieT += dt; continue; }               // corpses only play out their death frames
+    m.hurt -= dt; m.mcool -= dt; m.rcool -= dt; m.atk = (m.atk || 0) - dt; m.animT = (m.animT || 0) + dt;
     if (m.kbx || m.kby) {                                   // knockback slides out over ~0.2 s
       moveEnt(m, m.kbx * dt, m.kby * dt);
       const decay = Math.max(0, 1 - 9 * dt); m.kbx *= decay; m.kby *= decay;
@@ -989,7 +991,7 @@ function updateMonsters(dt) {
         spawnShot(m);
       }
       if (d > (m.boss ? 1.3 : 0.9)) moveEnt(m, ex / d * spd, ey / d * spd);
-      if (d <= (m.boss ? 1.6 : 1.0) && m.mcool <= 0) { m.mcool = 1.0; m.atk = 0.35; hurtPlayer(m.dmg); }
+      if (d <= (m.boss ? 1.6 : 1.0) && m.mcool <= 0) { m.mcool = 1.0; m.atk = ATK_T; hurtPlayer(m.dmg); }
     } else {
       m.wander -= dt;
       if (m.wander <= 0) { m.wander = rnd(1, 3); m.wa = rnd(0, Math.PI * 2); }
@@ -1174,17 +1176,19 @@ function renderWalls(dirX, dirY, planeX, planeY) {
   }
 }
 
+const monArtKey = m => m.boss ? 'boss' + (zoneOf(level) + 1) : m.kind;   // boss1 ... boss10, one per zone
 function renderSprites(dirX, dirY, planeX, planeY) {
   const list = [];
-  for (const m of monsters) if (m.dead) continue; else {
-    const art = MON_PX[m.boss ? 'boss' + (zoneOf(level) + 1) : m.kind];   // boss1 ... boss10, one per zone
-    if (art) {   // photo-rendered sprite: feet on the floor, attack frame, mirrored steps and a small hop while walking
-      const ph = (m.x + m.y) * 2.2;
-      list.push({ x: m.x, y: m.y, tex: art.frames[m.atk > 0 ? 1 : 0], hurt: m.hurt > 0, mon: true,
-        // attack = lunge: swells ~12% and lurches up (no arm animation; posed arms looked broken)
-        hW: MON_H * (m.boss ? 2.1 : m.scale) * art.tall * (m.atk > 0 ? 1.12 : 1), flip: m.atk <= 0 && (Math.floor(ph) & 1),
-        hop: m.atk > 0 ? 0.06 : Math.abs(Math.sin(ph * Math.PI)) * 0.025 });
-    } else list.push({ x: m.x, y: m.y, tex: m.tex, hurt: m.hurt > 0, v: m.boss ? 0.05 : 0.12, scale: m.scale });
+  for (const m of monsters) {
+    const art = MON_PX[m.art || monArtKey(m)];
+    if (art) {   // animated sprite: death frames (the last one stays as a corpse), else attack, pain flinch or walk cycle
+      let f;
+      if (m.dead) f = art.die[Math.min(art.die.length - 1, Math.floor(m.dieT * DIE_FPS))];
+      else if (m.atk > 0) f = art.atk[Math.min(art.atk.length - 1, Math.floor((1 - m.atk / ATK_T) * art.atk.length))];
+      else if (m.hurt > 0) f = art.pain;
+      else f = art.walk[Math.floor((m.animT || 0) * WALK_FPS * Math.min(1.6, Math.max(0.7, m.speed))) % art.walk.length];
+      list.push({ x: m.x, y: m.y, tex: art.frames[f], hurt: !m.dead && m.hurt > 0, mon: true, k: art.k });
+    } else if (!m.dead) list.push({ x: m.x, y: m.y, tex: m.tex, hurt: m.hurt > 0, v: m.boss ? 0.05 : 0.12, scale: m.scale });
   }
   for (const it of items) if (!it.taken) list.push({ x: it.x, y: it.y, tex: SPR[it.kind === 'drop' ? 'ammo' : it.kind], hurt: false, v: it.kind === 'drop' ? 0.38 : 0.3, scale: it.kind === 'drop' ? 0.5 : 0.8 });
   for (const s of shots) list.push({ x: s.x, y: s.y, tex: SPR.fire, hurt: false, v: 0, scale: 0.5 });
@@ -1226,17 +1230,15 @@ function renderSprites(dirX, dirY, planeX, planeY) {
 
 // Tall monster sprite standing on the floor (floor line for distance ty is RH/2 + RH/(2*ty)).
 function drawMonsterSprite(s, tx, ty) {
-  const t = s.tex, hpx = RH / ty * s.hW, wpx = hpx * t.w / t.h;
+  const t = s.tex, u = RH / ty * s.k, hpx = t.h * u, wpx = t.w * u;      // u: screen pixels per sprite pixel
   if (hpx < 1) return;
   const scrX = (RW / 2) * (1 + tx / ty);
-  const bottom = RH / 2 + RH / (2 * ty) - s.hop * RH / ty;
-  const top = bottom - hpx, x0 = scrX - wpx / 2;
+  const top = RH / 2 + RH / (2 * ty) - t.oy * u, bottom = top + hpx, x0 = scrX - t.ox * u;
   const fog = Math.max(0.12, 1 - ty / 12);
   const ys = Math.max(0, Math.floor(top)), ye = Math.min(RH - 1, Math.floor(bottom));
   for (let x = Math.max(0, Math.floor(x0)); x < Math.min(RW, Math.ceil(x0 + wpx)); x++) {
     if (ty >= zBuf[x]) continue;
     let tX = Math.floor((x - x0) * t.w / wpx); if (tX < 0 || tX >= t.w) continue;
-    if (s.flip) tX = t.w - 1 - tX;
     for (let y = ys; y <= ye; y++) {
       const tY = Math.floor((y - top) * t.h / hpx); if (tY < 0 || tY >= t.h) continue;
       const c = t[tY * t.w + tX];
@@ -1978,7 +1980,7 @@ const END_CAPS = [[0.4, 'The Spire Titan is dead.'], [2.4, 'One last door.'], [4
   [10.4, 'A hundred floors below, the crypt is quiet.'], [13.2, 'You climbed out of one world... and into another.'], [16, '']];
 const END_CREDITS = k => `The climb is over<br>100 floors · ${k} slain
   <b>Weapon and hand art</b>Ragnar Random · OpenGameArt
-  <b>Controller</b>RQPad
+  <b>Creatures</b>Freedoom · Blasphemer
   <b>3D scenes</b>three.js
   <b>The Spire</b>10 zones · 23 kinds of horror · 1 survivor
   <br><br>Thanks for playing<br><br>`;

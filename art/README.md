@@ -13,8 +13,12 @@
 - 4_wood_door: from the user's "Doors_Map.png" (left door, squashed to 64x64).
 Check the original packs' licenses before a public release.
 
-## monsters/ (now drawn by tools/draw_monsters.py; the megapack renders below were rejected and archived)
-Enemy sprites rendered from the user's "PSX Horror-Fantasy Megapack" 3D models by tools/render_monsters.py
-(idle pose = arms down, attack = arms raised), pixelated by tools/pack_assets.py into window.MONSTERS.
-Kinds: rat=killer pig, flame=eyehead, imp=devil demon, skel=werewolf, ghoul=anomaly monster, angel=bloodwraith,
-boss5=green cyclops, boss10=big abomination, boss15=elk demon. Check the pack's license before a public release.
+## enemies/ (the enemy and boss sprites in the game)
+Front-facing frames from two open-source game-art projects, both under the 3-clause BSD licence (commercial use is fine):
+- `enemies/freedoom/`: Freedoom, https://github.com/freedoom/freedoom (commit 21d783c). Licence: COPYING.adoc, authors: CREDITS.
+- `enemies/blasphemer/`: Blasphemer, https://github.com/Blasphemer/blasphemer (commit 5d858ad). Licence: COPYING.md, authors: CREDITS.md.
+**The licence text of both must ship with the game** (a licences file or screen) when it is released.
+`offsets.txt` in each folder gives every frame's origin (the point that stands on the floor). Which sprite plays which
+enemy, and which frames are walk / attack / pain / death, is in tools/enemy_cast.py. To pull different sprites:
+tools/import_enemies.py, then tools/pack_assets.py.
+Earlier enemy art (megapack 3D renders, then code-drawn sprites from tools/draw_monsters.py) was rejected and removed.
