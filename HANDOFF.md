@@ -3,8 +3,10 @@
 Read this first, then NOTES.md (running technical notes) and art/README.md (where each asset came from).
 
 ## What it is
-A first-person retro dungeon crawler in the style of Doom, Wolfenstein 3D, Heretic, Hexen and Daggerfall. It runs in the
-browser from one HTML page and is played mostly on an **Android phone** in landscape, using the on-screen controller.
+A first-person retro dungeon crawler in the style of Doom, Wolfenstein 3D, Heretic, Hexen and Daggerfall. It is a **PC game**
+(keyboard and mouse; aimed at Steam or itch.io one day) that runs in the browser from one HTML page. The user develops and
+tests it from an Android phone, so the on-screen controller (rqpad.js) is **test scaffolding only, not part of the game**:
+don't design for it, and it comes out before release. The game is still early; enemy art and balance come before polish.
 - **The climb:** a Three.js intro shows a tower erupting from the ground, then you climb 100 floors in 10 zones.
 - **Bosses:** one on every 10th floor.
 - **Weapons:** you start with only your fists and find guns in crates.
