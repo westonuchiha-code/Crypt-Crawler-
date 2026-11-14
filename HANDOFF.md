@@ -28,6 +28,7 @@ that slug, make a new artifact with the same three files and give the user the l
 | tools/enemy_cast.py | The enemy cast: which sprite and which animation frames each enemy and boss uses. |
 | tools/import_enemies.py | Copies the needed frames from Freedoom / Blasphemer checkouts into art/enemies. |
 | tools/draw_monsters.py | Old: drew enemies in code (rejected). Kept for reference. |
+| tools/balance.py | Prints the balance table per zone: enemy health, ammo margin, hits to die, healing. |
 | tools/live.py | Smoke test: plays every weapon on several floors. Must print `errors: none`. |
 | tools/shoot.py | Screenshot contact sheet of weapon animations. |
 | tools/compose_weapons.py, render_monsters.py, mockup.py | Old pipelines (cut weapons, rejected 3D-model monsters). Kept for reference. |
@@ -76,8 +77,8 @@ python3 tools/live.py            # must say: errors: none
 1. **Step 4, the ending:** done (see NOTES.md, "Ending"): passage, last door, the two moons, wide shot, SPIRE CONQUERED
    and a credit roll, then the menu.
 2. **Unused buttons:** wire ○, L1/R1 (previous/next gun?), L2/R2 and START (pause menu). The user hasn't decided; ask.
-3. **Balance pass:** across 100 floors, possibly with more health and armour pickups. Enemy damage still uses the old
-   numbers.
+3. **Balance:** first pass done (see NOTES.md, "Balance pass"; check with tools/balance.py). Still open: per-enemy stats
+   and names to suit the new sprites, boss fights, and nothing new unlocks after floor 9.
 4. **Before release:**
    - set RQPad `onlyOnTouch: true`
    - check the licences of the user-supplied packs (see art/README.md)

@@ -139,3 +139,15 @@ frame letters for walk / attack / pain / death. tools/pack_assets.py packs them 
 Dead monsters stay in `monsters` as corpses (`m.dead`, `m.dieT`, last death frame) until the next floor is generated.
 `m.scale`, the old lunge/swell and tools/draw_monsters.py are no longer used for anything but the no-assets fallback.
 pack_assets.py needs Pillow, numpy and scipy. To look at enemies in game, spawn them with `__cc.eval` and screenshot.
+
+## Balance pass, floors 1-100 (2026-11-14)
+Before: ammo covered 2.2x the enemies' health in the crypt but 0.3x in zone 10, and a 100 HP player died in 5-6 hits there.
+Now (formulas sit under `hpMul` at the top of index.html; `python3 tools/balance.py` prints the table per zone):
+- Max health is 100 + 10 per zone (`zoneMaxHp`), set on every staircase; stairs heal a quarter of it.
+- Potions heal 35 + 4 per zone, and floors hold 2, then 3 (zone 4+), then 4 (zone 8+).
+- Ammo is sized per floor in `generate()`: `floorAmmo` multiplies crates, boxes and drops so the floor holds about
+  `AMMO_RATIO` (1.9 falling to 1.3) times its enemies' total health in ammo damage. Never below x1, so zones 1-2 are unchanged.
+- Enemy health grows 12% per zone (was 15%). Ranged enemies' shots now deal that enemy's own damage (was a flat 4).
+- The HUD shows `HP n/max`.
+Result: ammo/health margin 2.5 -> 1.3 and hits-to-die 24 -> 11 from zone 1 to 10. Not touched: weapon stats, boss health,
+enemy rosters, and per-enemy stats (some no longer match their new sprites, e.g. 'rat' is a flesh worm).

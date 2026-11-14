@@ -95,7 +95,17 @@ const zoneStart = lv => zoneOf(lv) * 10 + 1;
 const BOSS_NAMES = {}, BOSS_HP = {};
 ZONES.forEach((z, i) => { BOSS_NAMES[(i + 1) * 10] = z.boss; BOSS_HP[(i + 1) * 10] = 600 + 300 * i; });   // 600 ... 3300
 // difficulty grows per zone (not per floor, which would explode by floor 100), plus a little within each zone
-const hpMul = lv => 1 + 0.15 * zoneOf(lv) + 0.01 * ((lv - 1) % 10);
+const hpMul = lv => 1 + 0.12 * zoneOf(lv) + 0.01 * ((lv - 1) % 10);
+// ---- balance: what the climb gives back (tools/balance.py prints the whole table, zone by zone) ----
+// The player toughens a little each zone, potions keep pace, and each floor's ammo is sized to the enemies on it:
+// about AMMO_RATIO times their total health in ammo damage, generous in the crypt and tighter near the top.
+const zoneMaxHp = lv => 100 + 10 * zoneOf(lv);                      // 100 in the crypt ... 190 in the other world
+const potionHeal = lv => 35 + 4 * zoneOf(lv);
+const potionCount = lv => 2 + (zoneOf(lv) >= 3) + (zoneOf(lv) >= 7);
+const AMMO_RATIO = lv => 1.9 - 0.065 * zoneOf(lv);                  // 1.9 ... 1.3
+const AMMO_DMG = { pistol: 12, shotgun: 40, wand: 40, lightning: 25 };   // rough damage one unit of ammo deals in real play
+let floorAmmo = 1;                                                  // this floor's ammo multiplier, set in generate()
+const ammoMul = () => floorAmmo;
 const dmgMul = lv => 1 + 0.12 * zoneOf(lv);
 // Damage is [min, max] per hit; enemy HP is on the same scale (imp 20, skeleton 30+, bosses 300-900).
 // knock = shove back (cells), stun = seconds the enemy cannot move or attack. Bosses take 20% knock, 30% stun.
@@ -476,7 +486,7 @@ function generateEntrance() {
   map = new Uint8Array(W * H).fill(2);
   for (let y = 2; y <= 5; y++) for (let x = 1; x <= 5; x++) map[y * W + x] = 0;
   map[1 * W + 3] = DOOR;
-  monsters = []; items = []; shots = []; pshots = [];
+  monsters = []; items = []; shots = []; pshots = []; floorAmmo = 1;
   explored = new Uint8Array(W * H).fill(1);
   P.x = 3.5; P.y = 4.5; P.a = -Math.PI / 2;
 }
@@ -558,7 +568,7 @@ function generate(lv) {
 
   items = []; shots = []; pshots = [];
   const addItem = (kind) => { if (!free.length) return; const [x, y] = cellXY(take()); items.push({ x, y, kind, taken: false }); };
-  for (let i = 0; i < 2; i++) addItem('potion');
+  for (let i = 0; i < potionCount(lv); i++) addItem('potion');
   addItem('crate');                                   // one weapon crate per floor
   addItem('ammo'); if (Math.random() < 0.5) addItem('ammo');
 
@@ -582,6 +592,14 @@ function generate(lv) {
     const kind = pickKind(lv);
     monsters.push(spawnMonster(x, y, kind, lv));
   }
+
+  // size this floor's ammo to what stands on it: unscaled, the floor would hold `base` damage worth of ammo
+  const pool = Object.keys(WEAPON_FLOOR).filter(w => lv >= WEAPON_FLOOR[w]);
+  const boxDmg = pool.reduce((a, w) => a + BOX_AMMO[w] * AMMO_DMG[w], 0);
+  const crateDmg = pool.reduce((a, w) => a + CRATE_AMMO[w] * AMMO_DMG[w], 0) / pool.length;
+  const base = items.reduce((a, it) => a + (it.kind === 'crate' ? crateDmg : it.kind === 'ammo' ? boxDmg : 0), 0)
+    + monsters.length * 0.3 * boxDmg / 2 / pool.length;
+  floorAmmo = Math.max(1, monsters.reduce((a, m) => a + m.hp, 0) * AMMO_RATIO(lv) / base);
 
   explored = new Uint8Array(W * H);
   P.x = sRoom.cx + 0.5; P.y = sRoom.cy + 0.5; P.a = 0;
@@ -664,39 +682,41 @@ function loadCheckpoint() { try { return JSON.parse(localStorage.getItem('cc_sav
 function clearCheckpoint() { try { localStorage.removeItem('cc_save'); } catch (e) {} }
 function nextLevel() {
   level++;
-  P.hp = Math.min(P.maxHp, P.hp + 25);
+  P.maxHp = zoneMaxHp(level);
+  P.hp = Math.min(P.maxHp, P.hp + Math.round(P.maxHp / 4));        // a breather on every staircase
   generate(level);
   const z = ZONES[zoneOf(level)];
   if (level === zoneStart(level)) {
     P.hp = P.maxHp; saveCheckpoint();
-    showMsg(level === 1 ? `You step into the Spire · ${z.name}` : `${z.name} · checkpoint`);
+    showMsg(level === 1 ? `You step into the Spire · ${z.name}` : `${z.name} · checkpoint · max health ${P.maxHp}`);
   } else showMsg(level % 10 === 0 ? `Floor ${level} · ${z.boss} awaits` : `Floor ${level}`);
 }
 function continueGame(cp) {
   kills = cp.kills || 0;
   P = newPlayer(); Object.assign(P.owned, cp.owned); Object.assign(P.ammo, cp.ammo);
   P.weapon = P.owned[cp.weapon] ? cp.weapon : 'fist';
-  level = cp.floor; generate(level);
+  level = cp.floor; P.maxHp = P.hp = zoneMaxHp(level); generate(level);
   running = true; overlay.style.display = 'none';
   showMsg(`${ZONES[zoneOf(level)].name} · floor ${level}`);
 }
 function giveWeapon(w) {
   const had = P.owned[w];
-  P.owned[w] = true; P.ammo[w] += CRATE_AMMO[w];
+  const n = Math.round(CRATE_AMMO[w] * floorAmmo);
+  P.owned[w] = true; P.ammo[w] += n;
   if (!had) P.weapon = w;
-  showMsg(had ? `${WEAPONS[w].name}: +${CRATE_AMMO[w]} ${AMMO_NAME[w]}` : `Found the ${WEAPONS[w].name}!`);
+  showMsg(had ? `${WEAPONS[w].name}: +${n} ${AMMO_NAME[w]}` : `Found the ${WEAPONS[w].name}!`);
 }
 function pickupItem(kind) {
   if (kind === 'potion') {
-    P.hp = Math.min(P.maxHp, P.hp + 35);
-    showMsg('Healing draught +35 HP');
+    P.hp = Math.min(P.maxHp, P.hp + potionHeal(level));
+    showMsg(`Healing draught +${potionHeal(level)} HP`);
   } else if (kind === 'ammo') {
-    for (const w in BOX_AMMO) P.ammo[w] += BOX_AMMO[w];
+    for (const w in BOX_AMMO) P.ammo[w] += Math.round(BOX_AMMO[w] * floorAmmo);
     showMsg('Ammo box');
   } else if (kind === 'drop') {                       // small ammo dropped by an enemy, for a random gun you can use on this floor
     const pool = Object.keys(WEAPON_FLOOR).filter(w => level >= WEAPON_FLOOR[w]);
     const w = pool[(Math.random() * pool.length) | 0];
-    const n = Math.max(1, Math.round(BOX_AMMO[w] / 2));
+    const n = Math.max(1, Math.round(BOX_AMMO[w] * floorAmmo / 2));
     P.ammo[w] += n; showMsg(`+${n} ${AMMO_NAME[w]}`);
   } else if (kind === 'crate') {
     // prefer a gun you do not have; otherwise any unlocked one (refill)
@@ -779,7 +799,7 @@ function spawnShot(m) {
   const d = Math.hypot(P.x - m.x, P.y - m.y) || 1;
   const sp = m.boss ? 4.2 : 3.2;
   m.atk = ATK_T;
-  shots.push({ x: m.x, y: m.y, vx: (P.x - m.x) / d * sp, vy: (P.y - m.y) / d * sp, life: 4, dmg: Math.round((m.boss ? 10 : 4) * dmgMul(level)) });
+  shots.push({ x: m.x, y: m.y, vx: (P.x - m.x) / d * sp, vy: (P.y - m.y) / d * sp, life: 4, dmg: m.boss ? Math.round(10 * dmgMul(level)) : m.dmg });   // a regular enemy's shot hits as hard as its claws
 }
 function updateShots(dt) {
   for (const s of shots) {
@@ -1078,7 +1098,7 @@ function update(dt) {
   const ammoTxt = wdef.ammo ? P.ammo[P.weapon] : '∞';
   const b = monsters.find(m => m.boss && !m.dead);
   const floorTxt = level === 0 ? 'ENTRANCE' : `FLOOR ${level} · ${ZONES[zoneOf(level)].name.replace('THE ', '')}`;
-  stats.textContent = `${floorTxt} · ${wdef.name} ${ammoTxt} · SLAIN ${kills}${b ? ` · ${b.name} ${b.hp}/${b.maxHp}` : ''}`;
+  stats.textContent = `HP ${Math.ceil(P.hp)}/${P.maxHp} · ${floorTxt} · ${wdef.name} ${ammoTxt} · SLAIN ${kills}${b ? ` · ${b.name} ${b.hp}/${b.maxHp}` : ''}`;
 }
 
 // ---------- rendering ----------
