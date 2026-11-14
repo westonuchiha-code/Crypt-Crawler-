@@ -6,6 +6,7 @@ let last = performance.now();
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000);
   last = t;
+  pollGamepad();
   if (introActive) {
     stepIntro(dt);
   } else if (endActive) {

@@ -12,6 +12,6 @@ RQPad.onButton = (name, down) => {
   if (name === 'A') padFire = down;
   if (!down) return;
   if (name === 'X' && running) cycleWeapon();
-  if (name === 'Y') mapOn = !mapOn;
+  if (name === 'Y') cycleMap();
 }
 

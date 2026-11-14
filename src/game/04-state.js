@@ -5,7 +5,9 @@ let W = 0, H = 0, map, explored, P, monsters = [], items = [], shots = [], pshot
 let darts = [];                                               // dart walls: { x, y, dx, dy, t } firing down a corridor
 let traps = [], trapAt = null, trapHurtT = 0;                // spike traps: list, lookup by cell (index + 1), hurt throttle
 let props = [], secrets = { total: 0, found: 0 }, lockMsgT = 0;   // scenery, this floor's secret rooms, 'locked' message throttle
-let level = 0, kills = 0, running = false, msgT = 0, mapOn = true;
+const cycleMap = () => { mapOn = (Number(mapOn) + 1) % 3; showMsg(['Map off', 'Minimap', 'Full map'][mapOn]); };
+let opened = [];                                              // cells of secret walls and locked doors you have opened on this floor
+let level = 0, kills = 0, running = false, msgT = 0, mapOn = 1;   // mapOn: 0 off, 1 corner minimap, 2 full map
 let pendingWin = 0, sealMsgT = 0, introActive = false, introSeen = false, endActive = false;
 const newPlayer = () => ({
   x: 3.5, y: 4.5, a: -Math.PI / 2, hp: 100, maxHp: 100, fire: 0, flash: 0, hurt: 0, anim: 0, swingT: 9, hitFlash: 0,

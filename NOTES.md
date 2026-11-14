@@ -346,3 +346,13 @@ floor; Star-Eater and Spire Titan moves eased.
   secret, pod, armour, ward, fury, difficulty, resume save, death and checkpoint retry, mouse release, pause, field of
   view, boss bar, achievement, zone results, victory menu, release build). It ends `errors: none` only if all pass.
   Note for writing more checks: the page's own frame loop keeps running between evals, so read "before" values first.
+
+## Controller, full map, high-contrast colours (2026-11-15)
+- Controllers: `pollGamepad()` (16-input-and-panels.js) reads the first connected gamepad every frame into `gp`
+  (standard layout: sticks, RT or A fire, RB / LB weapons, Y map, Start pause / confirm, B closes a panel). `update()`
+  adds `gp` to the existing analog path. Tested with a simulated gamepad only; no real controller has been tried.
+- Map: `mapOn` is now 0 / 1 / 2 (off, corner minimap, full map with a legend); `cycleMap()` on M or Y. `opened` lists
+  the secret walls and doors you opened so they stay marked. Colours come from `PAL()`.
+- Colours: `opts.pal` ('normal' / 'contrast', button `#optpal`). The contrast set avoids red-versus-green pairs on the
+  map and makes the hit wedge yellow. The health bar and the red damage tint are unchanged.
+- `cycleWeapon(dir)` takes a direction; the mouse wheel now goes both ways.

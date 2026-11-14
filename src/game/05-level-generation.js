@@ -170,7 +170,7 @@ function generate(lv) {
   const reserved = new Set();                                // cells that loot and enemies must not be dropped on
   const isOpen = (x, y) => { const t = map[idx(x, y)]; return t === 0 || t === STAIRS; };
   const D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-  props = []; secrets = { total: 0, found: 0 }; P.keys = 0;
+  props = []; secrets = { total: 0, found: 0 }; P.keys = 0; opened = [];
   const secretLoot = [];
   for (let n = 0, want = (Math.random() * 3) | 0, tries = 0; n < want && tries < 400; tries++) {   // 0-2 closets hidden behind a wall you can push open
     const x = 2 + ((Math.random() * (W - 4)) | 0), y = 2 + ((Math.random() * (H - 4)) | 0);

@@ -53,11 +53,11 @@ function dropIfEmpty(w) {
   P.weapon = next; P.owned.fist = true;
   showMsg(`${WEAPONS[w].name} is empty`);
 }
-function cycleWeapon() {
+function cycleWeapon(dir = 1) {
   sfx('switch', 0.6);
   const owned = WEAPON_ORDER.filter(w => P.owned[w]);
   const i = owned.indexOf(P.weapon);
-  P.weapon = owned[(i + 1) % owned.length];
+  P.weapon = owned[(i + dir + owned.length) % owned.length];
   showMsg(WEAPONS[P.weapon].name);
 }
 

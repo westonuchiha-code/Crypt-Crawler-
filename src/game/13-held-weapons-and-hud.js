@@ -124,36 +124,41 @@ function drawOverlays() {
   if (P.hitT > 0) {                                          // red wedge on a ring round the crosshair, pointing at whatever hit you
     const rel = P.hitA - P.a - Math.PI / 2, cx = RW / 2, cy = RH / 2, R = 62;
     bctx.save(); bctx.translate(cx + Math.cos(rel) * R, cy + Math.sin(rel) * R * 0.8); bctx.rotate(rel);
-    bctx.fillStyle = `rgba(255,40,30,${Math.min(0.9, P.hitT * 2)})`;
+    bctx.fillStyle = `rgba(${PAL().hit},${Math.min(0.9, P.hitT * 2)})`;
     bctx.beginPath(); bctx.moveTo(10, 0); bctx.lineTo(-4, -13); bctx.lineTo(0, 0); bctx.lineTo(-4, 13); bctx.closePath(); bctx.fill();
     bctx.restore();
   }
   drawHitFlash();
   drawBolts();
-  // minimap
+  // map: a corner minimap (mapOn 1) or the whole floor, centred over a dark backdrop (mapOn 2)
   if (mapOn && level > 0) {
-    const cs = 2, ox = 4, oy = 4;
+    const full = Number(mapOn) === 2, C = PAL();
+    const cs = full ? Math.max(2, Math.floor(Math.min((RW - 16) / W, (RH - 34) / H))) : 2;
+    const ox = full ? Math.floor((RW - W * cs) / 2) : 4, oy = full ? Math.floor((RH - 12 - H * cs) / 2) + 6 : 4;   // room for the HUD line above and the legend below
+    if (full) { bctx.fillStyle = 'rgba(0,0,0,0.72)'; bctx.fillRect(0, 0, RW, RH); }
+    const dot = (x, y, col, big) => { bctx.fillStyle = col; const k = big && full ? 1 : 0; bctx.fillRect(ox + Math.floor(x) * cs - k, oy + Math.floor(y) * cs - k, cs + 2 * k, cs + 2 * k); };
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       if (!explored[y * W + x]) continue;
       const t = map[y * W + x];
-      bctx.fillStyle = t === STAIRS ? '#e8d9a0' : t === LOCKED ? '#e0a020' : (t > 0 ? '#8a8a8a' : '#2e2e35');
+      bctx.fillStyle = t === STAIRS ? C.stairs : t === LOCKED ? C.lock : (t > 0 ? '#8a8a8a' : '#2e2e35');
       bctx.fillRect(ox + x * cs, oy + y * cs, cs, cs);
     }
-    const colors = { potion: '#4f4', crate: '#e0b737', ammo: '#aab', drop: '#aab', armour: '#8cf', fury: '#f80', ward: '#fff', key: '#fd0' };
-    for (const tr of traps) if (explored[tr.y * W + tr.x]) { bctx.fillStyle = '#a33'; bctx.fillRect(ox + tr.x * cs, oy + tr.y * cs, cs, cs); }
-    for (const it of items) {
-      const i = Math.floor(it.y) * W + Math.floor(it.x);
-      if (explored[i]) { bctx.fillStyle = colors[it.kind]; bctx.fillRect(ox + Math.floor(it.x) * cs, oy + Math.floor(it.y) * cs, cs, cs); }
-    }
+    for (const [c, what] of opened) dot(c % W, (c / W) | 0, what === 'secret' ? C.secret : C.lock);
+    for (const tr of traps) if (explored[tr.y * W + tr.x]) dot(tr.x, tr.y, C.trap);
+    for (const it of items) if (explored[Math.floor(it.y) * W + Math.floor(it.x)]) dot(it.x, it.y, C[it.kind] || C.ammo, it.kind === 'key');
     for (const m of monsters) {
       if (m.dead || m.prop) continue;
-      const i = Math.floor(m.y) * W + Math.floor(m.x);
-      if (explored[i]) { bctx.fillStyle = m.boss ? '#c0f' : '#f44'; bctx.fillRect(ox + Math.floor(m.x) * cs, oy + Math.floor(m.y) * cs, cs, cs); }
+      if (explored[Math.floor(m.y) * W + Math.floor(m.x)]) dot(m.x, m.y, m.boss ? C.boss : C.foe, m.boss);
     }
-    bctx.fillStyle = '#ffe14d';
+    bctx.fillStyle = C.you;
     bctx.fillRect(ox + P.x * cs - 1, oy + P.y * cs - 1, 2, 2);
     for (let k = 1; k <= 4; k++)
       bctx.fillRect(ox + (P.x + Math.cos(P.a) * k * 0.6) * cs, oy + (P.y + Math.sin(P.a) * k * 0.6) * cs, 1, 1);
+    if (full) {                                              // legend along the bottom
+      const leg = [[C.you, 'you'], [C.foe, 'enemy'], [C.boss, 'boss'], [C.stairs, 'stairs'], [C.lock, 'door'], [C.key, 'key'], [C.secret, 'secret'], [C.trap, 'trap'], [C.potion, 'potion'], [C.crate, 'cache']];
+      bctx.font = '6px monospace'; bctx.textBaseline = 'middle';
+      let lx = 6; for (const [col, name] of leg) { bctx.fillStyle = col; bctx.fillRect(lx, RH - 9, 4, 4); bctx.fillStyle = '#ddd'; bctx.fillText(name, lx + 6, RH - 6.5); lx += 10 + name.length * 3.7; }
+    }
   }
 }
 

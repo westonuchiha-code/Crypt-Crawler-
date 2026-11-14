@@ -1,4 +1,28 @@
 // ---------- flow & input ----------
+// ---- controllers (the browser Gamepad API, standard layout): left stick moves, right stick turns, RT or A fires,
+// RB / LB next / previous weapon, Y map, Start pauses or confirms a menu, B backs out of a panel. Polled every frame. ----
+const gp = { mx: 0, my: 0, look: 0, fire: false, was: {}, seen: false };
+function pollGamepad() {
+  let pad = null;
+  try { for (const g of (navigator.getGamepads ? navigator.getGamepads() : [])) if (g && g.connected) { pad = g; break; } } catch (e) {}
+  if (!pad) { gp.mx = gp.my = gp.look = 0; gp.fire = false; return; }
+  if (!gp.seen) { gp.seen = true; drawHelp(); }
+  const ax = i => Math.abs(pad.axes[i] || 0) > 0.15 ? pad.axes[i] : 0, dn = i => !!(pad.buttons[i] && (pad.buttons[i].pressed || pad.buttons[i].value > 0.5));
+  gp.mx = ax(0); gp.my = ax(1); gp.look = ax(2); gp.fire = dn(7) || dn(0);
+  const hit = i => { const d = dn(i), h = d && !gp.was[i]; gp.was[i] = d; return h; };
+  const start = hit(9), a = hit(0), b = hit(1), rb = hit(5), lb = hit(4), y = hit(3);
+  if (start || a || b || rb) { audioInit(); musicUnlock(); }
+  const panel = ['keypanel', 'recpanel', 'credits'].find(id => $(id).classList.contains('on'));
+  if (panel) { if (b || start) { if (panel === 'keypanel') showKeys(false); else if (panel === 'recpanel') showRecords(false); else showCredits(false); } return; }
+  if (introActive) { if ((start || a) && canSkipIntro()) endIntro(); return; }
+  if (endActive) { if ((start || a) && canSkipEnding()) finishEnding(); return; }
+  if (running) {
+    if (start) pauseGame();
+    if (rb) cycleWeapon(1);
+    if (lb) cycleWeapon(-1);
+    if (y) cycleMap();
+  } else if (overlay.style.display !== 'none' && (start || a) && performance.now() - menuShownAt > (paused ? 250 : 900)) $('go').click();
+}
 function resetGame() {
   level = 0; kills = 0; runT = 0; zoneStat = { t: 0, kills0: 0, hurt: 0, secrets: 0, secretsAll: 0 };
   P = newPlayer();
@@ -38,7 +62,7 @@ addEventListener('keydown', e => {
   if (running && (e.code === 'Escape' || e.code === K.pause) && !e.repeat) { pauseGame(); return; }
   keys[e.code] = true;
   if (e.code === K.full && !e.repeat) toggleFullscreen();
-  if (e.code === K.map && !e.repeat) mapOn = !mapOn;
+  if (e.code === K.map && !e.repeat) cycleMap();
   if (e.code === K.next && !e.repeat && running) cycleWeapon();
   if (WEAPON_KEYS[e.code] && running && P.owned[WEAPON_KEYS[e.code]]) { P.weapon = WEAPON_KEYS[e.code]; showMsg(WEAPONS[P.weapon].name); }
 });
@@ -53,7 +77,7 @@ addEventListener('mousemove', e => {
   if (running && document.pointerLockElement === canvas) P.a += e.movementX * 0.0022 * opts.sens;
 });
 canvas.addEventListener('pointerdown', e => { if (running && e.pointerType === 'mouse') fire(); });
-addEventListener('wheel', e => { if (running) cycleWeapon(); }, { passive: true });   // mouse wheel: next weapon
+addEventListener('wheel', e => { if (running) cycleWeapon(e.deltaY < 0 ? -1 : 1); }, { passive: true });   // mouse wheel: next weapon
 addEventListener('resize', resize);
 addEventListener('rqpad:layout', resize);
 showMenu('CRYPT CRAWLER', 'Erupt from the crypt, climb the Spire floor by floor, and slay the guardian on every tenth floor.', 'PRESS START');
@@ -86,6 +110,8 @@ function toggleFullscreen() {
   } catch (e) {}
 }
 $('optfull').addEventListener('click', e => { e.stopPropagation(); toggleFullscreen(); });
+$('optpal').textContent = opts.pal === 'contrast' ? 'high contrast' : 'normal';
+$('optpal').addEventListener('click', e => { e.stopPropagation(); opts.pal = opts.pal === 'contrast' ? 'normal' : 'contrast'; e.target.textContent = opts.pal === 'contrast' ? 'high contrast' : 'normal'; saveOpts(); });
 $('optfov').value = opts.fov;
 $('optfov').addEventListener('input', e => { setFov(+e.target.value); saveOpts(); });
 $('optfov').addEventListener('click', e => e.stopPropagation());
@@ -107,7 +133,7 @@ document.addEventListener('pointerlockchange', () => { if (!document.pointerLock
 document.addEventListener('visibilitychange', () => { if (document.hidden && running) pauseGame(); });
 // controls panel: click an action, press a key. A key already used by another action is swapped with it.
 let keyWait = null;
-function drawHelp() { $('help').textContent = `Keys: ${keyLabel(K.fwd)}${keyLabel(K.left)}${keyLabel(K.back)}${keyLabel(K.right)} move · ${keyLabel(K.tl)}/${keyLabel(K.tr)} or mouse turn · ${keyLabel(K.fire)} or click fires · 1-9 guns, 0 fists, ${keyLabel(K.next)} or wheel next · ${keyLabel(K.map)} map · ${keyLabel(K.full)} full screen · Esc pause`; }
+function drawHelp() { $('help').textContent = `Keys: ${keyLabel(K.fwd)}${keyLabel(K.left)}${keyLabel(K.back)}${keyLabel(K.right)} move · ${keyLabel(K.tl)}/${keyLabel(K.tr)} or mouse turn · ${keyLabel(K.fire)} or click fires · 1-9 guns, 0 fists, ${keyLabel(K.next)} or wheel next · ${keyLabel(K.map)} map · ${keyLabel(K.full)} full screen · Esc pause${gp.seen ? '  |  Controller: sticks move and turn · RT fire · RB/LB weapon · Y map · Start pause' : ''}`; }
 function drawKeys() {
   $('keytable').innerHTML = Object.keys(KEY_NAMES).map(a => `<tr><td>${KEY_NAMES[a]}</td><td><button data-a="${a}" class="${keyWait === a ? 'wait' : ''}">${keyWait === a ? 'press a key' : keyLabel(K[a])}</button></td></tr>`).join('');
   drawHelp();

@@ -7,7 +7,7 @@ const DEAD = 0.12;
 const stickCurve = v => { const a = Math.abs(v); if (a < DEAD) return 0; const t = (a - DEAD) / (1 - DEAD); return Math.sign(v) * t * t * 0.4 + Math.sign(v) * t * 0.6; };
 function update(dt) {
   // turning: keys or right stick, curved so small tilts aim finely, smoothed so it ramps rather than jerks
-  const look = (window.RQPad && RQPad.state.look.x) || 0;      // the test pad's right stick, when the pad is there
+  const look = gp.look || (window.RQPad && RQPad.state.look.x) || 0;      // a controller's right stick, or the test pad's
   const turnIn = Math.abs(look) > DEAD ? stickCurve(look) : (keys[K.tr] ? 1 : 0) - (keys[K.tl] ? 1 : 0);
   P.turnV = (P.turnV || 0) + (turnIn * TURN_SPEED - (P.turnV || 0)) * Math.min(1, TURN_ACCEL * dt);
   P.a += P.turnV * dt;
@@ -17,7 +17,7 @@ function update(dt) {
   // moving: when the left stick is held, use it alone (the pad also presses WASD past ~35% tilt; mixing them
   // made it snap to full speed). Keyboard keeps full-speed digital input.
   let f, s;
-  const jx = touchState.joyX, jy = touchState.joyY, jm = Math.hypot(jx, jy);
+  const jx = touchState.joyX + gp.mx, jy = touchState.joyY + gp.my, jm = Math.hypot(jx, jy);   // test pad or controller left stick
   if (jm > DEAD) {
     const k = stickCurve(Math.min(1, jm)) / jm;          // analog: tilt sets speed, direction stays exact
     f = -jy * k; s = jx * k;
@@ -44,7 +44,7 @@ function update(dt) {
   for (const b of bolts) b.life -= dt;
   bolts = bolts.filter(b => b.life > 0);
   if (msgT <= 0) msgEl.style.opacity = 0;
-  if (keys[K.fire] || padFire) fire();
+  if (keys[K.fire] || padFire || gp.fire) fire();
 
   updateMonsters(dt);
   ambienceTick(dt);
@@ -82,10 +82,10 @@ function update(dt) {
   if (level > 0) {                                           // walk into a locked door or a secret wall while facing it
     const ax = Math.floor(P.x + Math.cos(P.a) * 0.62), ay = Math.floor(P.y + Math.sin(P.a) * 0.62), at = ay * W + ax, t = map[at];
     if (t === LOCKED) {
-      if (P.keys > 0) { P.keys--; map[at] = 0; sfx('door'); showMsg('The door opens'); }
+      if (P.keys > 0) { P.keys--; map[at] = 0; opened.push([at, 'door']); sfx('door'); showMsg('The door opens'); }
       else if (lockMsgT <= 0) { lockMsgT = 2.5; sfx('noway'); showMsg('Locked. The key is somewhere on this floor'); }
     } else if (t === SECRET) {
-      map[at] = 0; secrets.found++; sfx('power'); showMsg(`A secret room! (${secrets.found} of ${secrets.total})`);
+      map[at] = 0; opened.push([at, 'secret']); secrets.found++; sfx('power'); showMsg(`A secret room! (${secrets.found} of ${secrets.total})`);
       if (secrets.total >= 2 && secrets.found === secrets.total) unlock('secrets');
     }
   }
