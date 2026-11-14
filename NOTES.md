@@ -67,8 +67,13 @@ measurements behind each change, is in docs/notes-history.md.
   (normal or high contrast).
 - Sound: `sfx`, `sfxAt`, `msnd`; music by `<audio>` (`setMusic`, zones share tracks in pairs); ambience per zone
   (`ZONE_AMB`). All chosen by file name and checked by machine, not by ear.
-- Menus: `showMenu` (title, game over, results, victory), pause, settings (volume, music, difficulty, view, full
-  screen, colours, mouse speed), controls (rebinding), records and achievements, credits with licence texts.
+- Menus: one vertical list (`#menu`: start / continue, new climb, options, controls, records, credits, quit) used by
+  the title, pause, game over, zone results and victory (`showMenu`, `pauseGame`). Options, controls, records and
+  credits are full-page `.panel`s with a BACK line. **Everything is driven by keyboard and controller, no pointer
+  needed** (`menuItems`, `menuNav`, `menuAdjust`, `menuActivate`, `menuBack` in 16-input-and-panels.js): up / down
+  choose, left / right change a slider or toggle, confirm, back; credits and records scroll. The mouse works too.
+  The user was emphatic (2026-11-15): this is a PC game; nothing may depend on touch, and the title screen must look
+  like a normal title screen with nothing overlapping.
 - Input: keyboard and mouse, any standard controller (`pollGamepad`), and the RQPad on-screen pad for phone testing.
 
 ## Known gaps

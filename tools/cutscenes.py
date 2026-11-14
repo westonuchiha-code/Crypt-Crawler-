@@ -28,7 +28,7 @@ with sync_playwright() as p:
     ok('intro finished into the game', ev("!introActive && running && level === 0"))
     ok('intro caption hidden', pg.evaluate("getComputedStyle(document.getElementById('caption')).display") == 'none')
     # intro skip
-    ev("introSeen = false; showMenu('CRYPT CRAWLER', '', 'PRESS START')"); pg.wait_for_timeout(950); pg.click('#go'); pg.wait_for_timeout(800)
+    ev("introSeen = false; showMenu('CRYPT CRAWLER', '', 'START')"); pg.wait_for_timeout(950); pg.click('#go'); pg.wait_for_timeout(800)
     pg.keyboard.press('Space'); pg.wait_for_timeout(200)
     ok('intro skipped with a key', ev("!introActive && running"))
     # ending: victory() plays it, then the SPIRE CONQUERED menu

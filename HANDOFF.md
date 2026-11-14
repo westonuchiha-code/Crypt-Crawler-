@@ -60,6 +60,8 @@ python3 tools/cutscenes.py       # intro and ending end to end, after touching t
 ## How the user wants to work (important)
 - **Don't ask them to play-test:** they are usually at work and test a day or two later. Verify with tools/bot.py,
   tools/balance.py, simulations and screenshots, and keep working. (They said so, angrily, on 2026-11-14.)
+- **No phone-game leftovers:** it is a PC game. Every screen must work from a controller and from the keyboard alone;
+  never add anything that needs a touch or a pointer. The on-screen pad is only in their phone test link.
 - **Keep it short:** they're on a phone and watch their usage, so keep messages and token use lean.
 - **Mock-ups for anything visual:** for a new look, art or weapon, render a screenshot or sheet first and show it before
   changing the published game. When they say "continue" or "make the best choice", you may go ahead, but still show

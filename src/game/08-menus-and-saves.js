@@ -23,9 +23,9 @@ function showMenu(title, text, go, dead) {
   const b = loadBest();
   $('hiscore').innerHTML = b.floor ? `TOP CLIMB &nbsp;<b>FLOOR ${b.floor}</b> &nbsp;·&nbsp; <b>${b.kills}</b> SLAIN` : 'TOP CLIMB &nbsp;<b>---</b>';
   const cp = (!dead && loadResume()) || loadCheckpoint(), canCont = cp && cp.floor > 1 && title !== 'SPIRE CONQUERED';
-  if (canCont && !dead && title === 'CRYPT CRAWLER') $('go').textContent = `PRESS START · FLOOR ${cp.floor}`;
+  if (canCont && !dead && title === 'CRYPT CRAWLER') $('go').textContent = `CONTINUE · FLOOR ${cp.floor}`;
   $('newclimb').style.display = canCont ? '' : 'none'; $('quit').style.display = 'none'; paused = false; summary = false;
-  overlay.style.display = 'flex'; menuShownAt = performance.now();
+  overlay.style.display = 'flex'; menuShownAt = performance.now(); menuI = 0; menuPaint();
 }
 let menuShownAt = performance.now(), paused = false, summary = false, lockDropT = -1e9;   // lockDropT: when the game itself last let go of the mouse
 // ---- zone results: shown when you take the stairs after a boss; PRESS START carries on to the next zone ----
@@ -63,7 +63,8 @@ function showRecords(on) {
     + ZONES.map((z, i) => row(`Best time · ${z.name}`, s.zoneBest[i] ? clock(s.zoneBest[i]) : '-')).join('')
     + `<tr><td colspan="2" style="padding-top:14px;color:#ff8a3a;letter-spacing:3px">ACHIEVEMENTS ${Object.keys(s.ach || {}).length} OF ${Object.keys(ACH).length}</td></tr>`
     + Object.keys(ACH).map(id => row(`${ACH[id][0]} · <span style="color:#8a8078">${ACH[id][1]}</span>`, (s.ach || {})[id] ? '✓' : '')).join('');
-  $('recpanel').classList.toggle('on', on); menuShownAt = performance.now();
+  $('recpanel').classList.toggle('on', on); if (on) { menuBackI = menuI; menuI = 0; } else menuI = menuBackI;
+  menuPaint();
 }
 const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 function showSummary() {
@@ -73,7 +74,7 @@ function showSummary() {
   if (zoneStat.t < 480) unlock('sprint');
   showMenu(`${z.name.replace(/^THE /, '')} CLEARED`,
     `${z.boss} is dead · time ${clock(zoneStat.t)} · ${kills - zoneStat.kills0} slain · secrets ${zoneStat.secrets} of ${zoneStat.secretsAll} · damage taken ${Math.round(zoneStat.hurt)}`,
-    `PRESS START · ${ZONES[zoneOf(level + 1)].name}`);
+    `ONWARD · ${ZONES[zoneOf(level + 1)].name}`);
   $('newclimb').style.display = 'none'; summary = true;
 }
 // ---- pause: Esc or P in play (or losing the mouse lock, or switching away from the tab) ----
@@ -83,7 +84,7 @@ function pauseGame() {
   $('title').textContent = 'PAUSED'; $('title').classList.remove('dead'); $('tag').style.display = 'none';
   introEl.textContent = level > 0 ? `Floor ${level} · ${ZONES[zoneOf(level)].name}` : 'The entrance';
   $('go').textContent = 'RESUME'; $('newclimb').style.display = 'none'; $('quit').style.display = '';
-  overlay.style.display = 'flex'; menuShownAt = performance.now();
+  overlay.style.display = 'flex'; menuShownAt = performance.now(); menuI = 0; menuPaint();
   for (const k in keys) keys[k] = false;
   if (document.pointerLockElement) document.exitPointerLock();
 }
@@ -96,7 +97,7 @@ function die() {
   const rec = saveBest(), cp = loadCheckpoint();
   const zn = ZONES[zoneOf(Math.max(1, level))].name, inZone = level > 0 ? ((level - 1) % 10) + 1 : 0;
   showMenu('GAME OVER', `${rec ? 'NEW RECORD! ' : ''}Killed by ${P.killer || 'the Spire'} on floor ${level} · ${zn}, floor ${inZone} of 10 · ${kills} slain · ${clock(runT)} into the climb`,
-    cp ? `CONTINUE FROM FLOOR ${cp.floor}? PRESS START` : 'CONTINUE? PRESS START', true);
+    cp && cp.floor > 1 ? `CONTINUE · FLOOR ${cp.floor}` : 'TRY AGAIN', true);
 }
 function victory() {
   unlock('win'); if (opts.diff === 'hard') unlock('hard'); if (zoneDeaths === 0) unlock('flawless');
@@ -105,7 +106,7 @@ function victory() {
   victoryMenu();
 }
 function victoryMenu() {
-  showMenu('SPIRE CONQUERED', `The Spire Titan is dead · all ${FINAL} floors · ${kills} slain · time ${clock(runT)}`, 'PRESS START TO CLIMB AGAIN');
+  showMenu('SPIRE CONQUERED', `The Spire Titan is dead · all ${FINAL} floors · ${kills} slain · time ${clock(runT)}`, 'CLIMB AGAIN');
 }
 // ---- checkpoints: entering a zone saves floor + loadout (localStorage 'cc_save'); CONTINUE restarts there ----
 // A second save, 'cc_resume', is written on every floor so closing the game loses nothing; it restores the floor exactly
