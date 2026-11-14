@@ -255,3 +255,16 @@ floor; Star-Eater and Spire Titan moves eased.
   early bosses: boss damage is now 8 melee / 6 per shot in zone 1 rising to 22 / 19 in zone 10 (was a flat multiple),
   the Warden raises two ghouls instead of three sabreclaws, the Hollow Queen's rings are smaller. Weak bot: no deaths in
   zones 1-3. Average bot: unchanged curve; the final boss still costs it 1-4 deaths (high variance between runs).
+
+## Boss arenas, four more enemies, retry ammo floor (2026-11-14, night)
+- Boss floors: `generate()` adds an 11 x 11 `arena` room (always with four pillars) as the last room in the chain, at
+  least 14 cells from the start, and puts the stairs in its centre; the boss spawns beside them. 200 test floors all valid.
+- New enemies for zones 7-10 (Freedoom sprites and sounds): `trooper`, `sarge`, `gunner`, `spider` (stats in `KIND`,
+  rosters updated). 27 enemy kinds and bosses in all, plus the pod.
+- Death-spiral fix: `continueGame()` now gives every gun unlocked by that floor with at least 1.5 caches of ammo
+  (scaled by `floorAmmo`). Found by starting the bot at floor 81 with little ammo: it died 39 times in zone 10 and fought
+  38% of the time with fists. After the fix: 1 death. `AMMO_RATIO` now falls to 1.55 (was 1.3).
+- Arenas made bosses harder for the weak bot (no corridors to hide in), so: early bosses fire less often
+  (`rcool` 2.1 s in zone 1 to 1.5 s in zone 10), boss charges are rarer, and the bosses of floors 70, 80 and 90 were eased.
+- Bot now: average player, full climb: deaths only on floors 90 and 100 (about 2 per climb). Weak player, zones 1-4:
+  about 2 deaths on floor 30, under 1 on floor 40, none elsewhere.

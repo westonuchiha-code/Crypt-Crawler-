@@ -230,7 +230,7 @@ const hpMul = lv => 1 + 0.12 * zoneOf(lv) + 0.01 * ((lv - 1) % 10);
 const zoneMaxHp = lv => 100 + 10 * zoneOf(lv);                      // 100 in the crypt ... 190 in the other world
 const potionHeal = lv => 35 + 4 * zoneOf(lv);
 const potionCount = lv => 2 + (zoneOf(lv) >= 3) + (zoneOf(lv) >= 7);
-const AMMO_RATIO = lv => 1.9 - 0.065 * zoneOf(lv);                  // 1.9 ... 1.3
+const AMMO_RATIO = lv => 1.9 - 0.04 * zoneOf(lv);                   // 1.9 ... 1.55
 const AMMO_DMG = { ewand: 12, dshot: 40, phoenix: 40, claw: 25, hstaff: 13, mace: 8, plasma: 12, rocket: 110, bfg: 500 };   // rough damage one unit of ammo deals in real play
 const wpnMul = lv => 1 + 0.1 * zoneOf(lv);                          // your weapons hit 10% harder for every zone climbed
 const ARMOUR_MAX = 100, ARMOUR_PICKUP = 50, ARMOUR_SOAK = 0.5;      // armour takes half of each hit until it is gone
@@ -632,10 +632,10 @@ const ROSTERS = [
   [['knight', 4], ['skel', 2], ['imp', 2], ['angel', 1]],                             // castle halls
   [['golem', 2], ['flame', 4], ['imp', 2], ['knight', 2]],                            // foundry
   [['harpy', 4], ['angel', 3], ['flame', 2], ['knight', 1]],                          // sky tower
-  [['harpy', 4], ['angel', 3], ['golem', 1], ['eye', 1]],                             // upper air
-  [['alien', 4], ['eye', 3], ['harpy', 1]],                                           // the void
-  [['horror', 2], ['eye', 3], ['alien', 3], ['harpy', 2]],                            // alien spire
-  [['horror', 2], ['alien', 2], ['eye', 2], ['golem', 1], ['angel', 1], ['slime', 2], ['skel', 2]]   // the other world
+  [['harpy', 4], ['angel', 3], ['golem', 1], ['eye', 1], ['trooper', 2]],             // upper air
+  [['alien', 3], ['eye', 2], ['trooper', 3], ['sarge', 2], ['harpy', 1]],             // the void
+  [['horror', 2], ['eye', 2], ['alien', 2], ['gunner', 2], ['spider', 1], ['harpy', 2]],   // alien spire
+  [['horror', 2], ['alien', 2], ['eye', 1], ['spider', 2], ['gunner', 1], ['golem', 1], ['slime', 2], ['skel', 2]]   // the other world
 ];
 // Scenery per zone: [standing props (block movement), props hung from the ceiling (roofed zones only)].
 const ZONE_PROPS = [
@@ -669,6 +669,10 @@ const KIND = {
   alien:  { hp: 65,  speed: 1.1, dmg: 6,  ranged: true, shot: 'spit' },
   eye:    { hp: 85,  speed: 0.7, dmg: 6,  ranged: true, shot: 'spit', keep: 3.5, weave: 0.3, fly: true },
   horror: { hp: 170, speed: 0.6, dmg: 9,  ranged: true, shot: 'blob', burst: 2, keep: 4, heavy: true },      // twin cannons
+  trooper:{ hp: 50,  speed: 1.0, dmg: 5,  ranged: true, shot: 'bolt', keep: 3 },                      // dead soldier: plinks from range
+  sarge:  { hp: 75,  speed: 1.0, dmg: 5,  ranged: true, shot: 'spit', burst: 3 },                     // shotgun soldier: a fan up close
+  gunner: { hp: 95,  speed: 0.9, dmg: 5,  ranged: true, shot: 'bolt', burst: 3, keep: 3.5, heavy: true },   // heavy gunner: tight bursts
+  spider: { hp: 150, speed: 0.8, dmg: 7,  ranged: true, shot: 'bolt', burst: 2, keep: 4, heavy: true }, // machine spider
   pod:    { hp: 15,  speed: 0, dmg: 0, prop: true }                                                   // explosive pod: not an enemy, bursts when shot
 };
 // Each zone's boss has its own moves on top of walking at you and shooting:
@@ -681,12 +685,12 @@ const BOSS_MOVES = [
   { shot: 'heavy',  lunge: true },                                          // the Iron Castellan charges
   { shot: 'fire',   burst: 3, lunge: true },                                // the Forgeheart: charges and fans fire
   { shot: 'fire',   summon: ['flame', 4, 7], fly: true, weave: 0.4 },       // the Storm Herald spits out flames
-  { shot: 'heavy',  burst: 2, ring: [8, 7] },                               // the Skywyrm
-  { shot: 'bolt',   stream: [7, 0.18] },                                    // the Void Archon: a hose of bolts
-  { shot: 'fire',   blink: [8], ring: [10, 7] },                            // the Star-Eater steps through space
+  { shot: 'heavy',  burst: 2, ring: [6, 8] },                               // the Skywyrm
+  { shot: 'bolt',   stream: [6, 0.2] },                                    // the Void Archon: a hose of bolts
+  { shot: 'fire',   blink: [10], ring: [8, 8] },                            // the Star-Eater steps through space
   { shot: 'rocket', burst: 3, summon: ['horror', 1, 20], ring: [10, 9] }    // the Spire Titan: rockets, rings and reinforcements
 ];
-const SPR_FALLBACK = { slime: 'ghoul', knight: 'skel', golem: 'ghoul', harpy: 'imp', alien: 'imp', eye: 'flame', horror: 'ghoul' };
+const SPR_FALLBACK = { trooper: 'imp', sarge: 'imp', gunner: 'imp', spider: 'ghoul', slime: 'ghoul', knight: 'skel', golem: 'ghoul', harpy: 'imp', alien: 'imp', eye: 'flame', horror: 'ghoul' };
 function spawnMonster(x, y, kind, lv) {
   const m = { x, y, kind, dead: false, hurt: 0, mcool: 0, rcool: rnd(1, 2.5), wander: 0, wa: 0, ph: rnd(0, 6.28),
     boss: false, name: '', ranged: false, scale: 1, speed: 1, dmg: 5, hp: 55, maxHp: 55, tex: SPR.ghoul,
@@ -730,6 +734,17 @@ function generate(lv) {
     if (clash) continue;
     rooms.push({ x0, y0, x1, y1, cx: (x0 + x1) >> 1, cy: (y0 + y1) >> 1 });
   }
+  let arena = null;
+  if (BOSS_NAMES[lv]) {                                      // a boss floor ends in an 11 x 11 arena: the last room in the chain, stairs in the middle
+    for (let tries = 0; tries < 400 && !arena; tries++) {
+      const x0 = 2 + ((Math.random() * (W - 15)) | 0), y0 = 2 + ((Math.random() * (H - 15)) | 0), x1 = x0 + 10, y1 = y0 + 10;
+      const r0 = rooms[0];
+      if (Math.hypot(x0 + 5 - r0.cx, y0 + 5 - r0.cy) < 14) continue;          // well away from where you start
+      for (let i = rooms.length - 1; i > 0; i--) { const r = rooms[i]; if (!(x1 + 2 < r.x0 || r.x1 + 2 < x0 || y1 + 2 < r.y0 || r.y1 + 2 < y0)) rooms.splice(i, 1); }
+      const r = rooms[0]; if (!(x1 + 2 < r.x0 || r.x1 + 2 < x0 || y1 + 2 < r.y0 || r.y1 + 2 < y0)) continue;
+      arena = { x0, y0, x1, y1, cx: x0 + 5, cy: y0 + 5, arena: true }; rooms.push(arena);
+    }
+  }
   for (const r of rooms) for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) map[idx(x, y)] = 0;
 
   // L-shaped corridor between two room centres
@@ -748,7 +763,7 @@ function generate(lv) {
   // big halls get pillars set off the centre lines, so corridors still run through
   for (const r of rooms) {
     const w = r.x1 - r.x0 + 1, h = r.y1 - r.y0 + 1;
-    if (w >= 7 && h >= 7 && Math.random() < 0.6) {
+    if (w >= 7 && h >= 7 && (r.arena || Math.random() < 0.6)) {      // the arena always has its four pillars for cover
       for (const [px, py] of [[r.x0 + 2, r.y0 + 2], [r.x1 - 2, r.y0 + 2], [r.x0 + 2, r.y1 - 2], [r.x1 - 2, r.y1 - 2]]) map[idx(px, py)] = 1;
     }
   }
@@ -771,6 +786,7 @@ function generate(lv) {
       if (map[n] === 0 && dist[n] < 0) { dist[n] = dist[c] + 1; q.push(n); }
     }
   }
+  if (arena) far = idx(arena.cx, arena.cy);
   map[far] = STAIRS;
   stairsPos = { x: (far % W) + 0.5, y: ((far / W) | 0) + 0.5 };
 
@@ -1120,6 +1136,10 @@ function continueGame(cp) {
   for (const w in P.owned) if (!WEAPONS[w]) delete P.owned[w];          // a save from before the weapon change
   P.weapon = WEAPONS[cp.weapon] && P.owned[cp.weapon] ? cp.weapon : (WEAPON_ORDER.find(w => P.owned[w]) || 'fist'); P.armor = cp.armor || 0;
   level = cp.floor; P.maxHp = P.hp = zoneMaxHp(level); generate(level); setMusic(MUSIC_FOR(level));
+  // a retry never starts empty-handed: every gun unlocked by now is in your hands with at least a cache and a half of ammo,
+  // so running dry before a checkpoint cannot turn into dying there over and over
+  for (const w in WEAPON_FLOOR) if (level >= WEAPON_FLOOR[w]) { P.owned[w] = true; P.ammo[w] = Math.max(P.ammo[w], Math.round(CRATE_AMMO[w] * floorAmmo * 1.5)); }
+  if (P.weapon === 'fist') P.weapon = WEAPON_ORDER.find(w => P.owned[w]) || 'fist';
   running = true; overlay.style.display = 'none';
   showMsg(`${ZONES[zoneOf(level)].name} · floor ${level}`);
 }
@@ -1296,10 +1316,10 @@ function bossMoves(m, dt, d) {
     for (let tries = 0; tries < 16; tries++) {
       const a = rnd(0, 6.28), x = P.x + Math.cos(a) * 2.6, y = P.y + Math.sin(a) * 2.6;
       if (blocked(x, y) || !los(x, y, P.x, P.y)) continue;
-      m.x = x; m.y = y; m.mcool = 0.7; sfxAt('stairs', x, y); break;
+      m.x = x; m.y = y; m.mcool = 1.0; m.rcool = Math.max(m.rcool, 0.8); sfxAt('stairs', x, y); break;   // a beat to react after it appears
     }
   }
-  if (m.streamN > 0 && (m.streamT -= dt) <= 0) { m.streamN--; m.streamT = m.stream[1]; m.atk = ATK_T; sfxAt('eshot', m.x, m.y, 0.6); spawnShot(m, rnd(-0.07, 0.07), 0.35); }
+  if (m.streamN > 0 && (m.streamT -= dt) <= 0) { m.streamN--; m.streamT = m.stream[1]; m.atk = ATK_T; sfxAt('eshot', m.x, m.y, 0.6); spawnShot(m, rnd(-0.07, 0.07), 0.3); }
 }
 function updateShots(dt) {
   for (const s of shots) {
@@ -1491,12 +1511,12 @@ function updateMonsters(dt) {
       if (!m.woke) { m.woke = true; msnd(m, 'see'); }       // first sight of you: its alert cry
       if (m.boss) bossMoves(m, dt, d);
       if (m.ranged && m.rcool <= 0 && d > 2.2) {
-        m.rcool = m.boss ? 1.5 : 2.6;
+        m.rcool = m.boss ? 2.1 - 0.07 * zoneOf(level) : 2.6;        // early bosses shoot less often: every 2.1 s in the crypt, 1.5 s at the top
         if (m.stream) { m.streamN = m.stream[0]; m.streamT = 0; m.rcool = 1.6 + m.stream[0] * m.stream[1]; }
         else volley(m);
       }
       if (m.lunge && (m.lungeCd -= dt) <= 0 && d > 2.2 && d < 7) {
-        m.lungeCd = rnd(2.5, 4.5); m.lungeT = 0.45; m.lx = ex / d; m.ly = ey / d; msnd(m, 'atk', 0.8);
+        m.lungeCd = m.boss ? rnd(4.5, 6.5) : rnd(2.5, 4.5); m.lungeT = 0.45; m.lx = ex / d; m.ly = ey / d; msnd(m, 'atk', 0.8);
       }
       const reach = m.boss ? 1.3 : 0.9;
       const dir = d > Math.max(reach, m.keep) ? 1 : (m.keep && d < m.keep - 1.2 ? -0.6 : 0);   // close in, hold, or back off
@@ -2372,7 +2392,7 @@ const END_CREDITS = k => `The climb is over<br>100 floors · ${k} slain
   <b>Creatures, weapons and sound</b>Freedoom · Blasphemer
   <b>Fist</b>Ragnar Random · OpenGameArt
   <b>3D scenes</b>three.js
-  <b>The Spire</b>10 zones · 23 kinds of horror · 1 survivor
+  <b>The Spire</b>10 zones · 27 kinds of horror · 1 survivor
   <br><br>Thanks for playing<br><br>`;
 let ending = null, endStartedAt = 0;
 const canSkipEnding = () => endActive && performance.now() - endStartedAt > 2500;   // long guard: fire is usually still held when the Titan drops

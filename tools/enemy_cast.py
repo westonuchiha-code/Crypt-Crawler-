@@ -20,6 +20,10 @@ CAST = {
     'alien':  ('f', 'skel', 1.05, 'ABC',    'JK',   'L',  'MNOPQ'),
     'eye':    ('f', 'head', 0.85, 'A',      'BCD',  'E',  'GHIJKL'),
     'horror': ('f', 'fatt', 1.15, 'ABCDEF', 'GHI',  'J',  'KLMNOPQRST'),
+    'trooper':('f', 'poss', 0.92, 'ABCD',   'EF',   'G',  'HIJKL'),
+    'sarge':  ('f', 'spos', 0.92, 'ABCD',   'EF',   'G',  'HIJKL'),
+    'gunner': ('f', 'cpos', 0.98, 'ABCD',   'EF',   'G',  'HIJKLMN'),
+    'spider': ('f', 'bspi', 0.80, 'ABC',    'GH',   'I',  'JKLMNOP'),
     'pod':    ('b', 'ppod', 0.42, 'A',      'B',    'B',  'CDEFG'),             # explosive pod: scenery you can shoot
     'boss1':  ('b', 'sor2', 1.70, 'MNOP',   'RST',  'Q',  'FEDCBA'),            # the Warden: a skeleton lord (dies by its rise played backwards)
     'boss2':  ('b', 'snke', 1.60, 'ABCD',   'EF',   'E',  'GHIJKLMNOP'),        # the Sewer King
