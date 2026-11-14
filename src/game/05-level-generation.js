@@ -58,12 +58,15 @@ const KIND = {
 const BOSS_MOVES = [
   { shot: 'bolt',   summon: ['ghoul', 2, 12] },                              // the Warden raises the dead
   { shot: 'spit',   burst: 3 },                                             // the Sewer King spits a fan
-  { shot: 'bolt',   ring: [6, 7], fly: true },                             // the Hollow Queen: rings of bolts
+  { shot: 'bolt',   ring: [6, 7], fly: true,                               // the Hollow Queen: rings of bolts,
+    phase2: { summon: ['flame', 3, 8] }, phase2Msg: 'The Hollow Queen screams, and burning skulls answer' },   // then skulls
   { shot: 'heavy',  lunge: true },                                          // the Iron Castellan charges
-  { shot: 'fire',   burst: 3, lunge: true },                                // the Forgeheart: charges and fans fire
+  { shot: 'fire',   burst: 3, lunge: true,                                  // the Forgeheart: charges and fans fire,
+    phase2: { burst: 5, speed: 0.95 }, phase2Msg: 'The Forgeheart burns white-hot' },                        // then wider fans, faster
   { shot: 'fire',   summon: ['flame', 4, 7], fly: true, weave: 0.4 },       // the Storm Herald spits out flames
   { shot: 'heavy',  burst: 2, ring: [6, 8] },                               // the Skywyrm
-  { shot: 'bolt',   stream: [6, 0.2] },                                    // the Void Archon: a hose of bolts
+  { shot: 'bolt',   stream: [6, 0.2],                                      // the Void Archon: a hose of bolts,
+    phase2: { stream: [8, 0.18], blink: [9] }, phase2Msg: 'The Void Archon slips out of step with the world' },   // then it teleports
   { shot: 'fire',   blink: [10], ring: [8, 8] },                            // the Star-Eater steps through space
   { shot: 'rocket', burst: 3, summon: ['horror', 1, 20], ring: [10, 9],
     phase2: { burst: 4, speed: 1.0, ring: [14, 7], stream: null }, phase2Msg: 'The Titan tears off its armour and comes for you' }    // the Spire Titan: rockets, rings and reinforcements

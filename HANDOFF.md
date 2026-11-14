@@ -1,6 +1,7 @@
 # Crypt Crawler: hand-off
 
-Read this first, then NOTES.md (running technical notes) and art/README.md (where each asset came from).
+Read this first, then NOTES.md (how the game works now), src/README.md (where the code is) and CREDITS.md (what the
+art, sound and code licences require). docs/notes-history.md is the day-by-day log behind NOTES.md.
 
 ## What it is
 A first-person retro dungeon crawler in the style of Doom, Wolfenstein 3D, Heretic, Hexen and Daggerfall. It is a **PC game**
@@ -11,7 +12,7 @@ don't design for it, and it comes out before release. The game is still early; e
 - **Bosses:** one on every 10th floor.
 - **Weapons:** you start with only your fists and find guns in crates.
 - **Checkpoints:** saved at the start of each zone.
-- **Ending (planned):** floor 100 breaks out onto an alien planet.
+- **Ending:** floor 100 breaks out onto an alien planet (a cutscene, then credits).
 
 Live build: Claude artifact https://claude.ai/artifact/9JUAfvhSNJcQNMox1yB1pe (slug 43397ed7-28db-4541-a9f7-31e7b520c09b,
 version 1794622178-40fd at hand-off). It's a multi-file artifact: index.html, assets.js, sounds.js, three.min.js, rqpad.js and music/*.mp3. If you can't publish to
@@ -35,7 +36,7 @@ that slug, make a new artifact with the same three files and give the user the l
 | tools/balance.py | Prints the balance table per zone: enemy health, ammo margin, hits to die, healing. |
 | tools/bot.py, bot.js | Test bot: plays all 100 floors on the real game logic and reports deaths, damage and stalls per zone. |
 | tools/live.py | Smoke test: plays every weapon on several floors. Must print `errors: none`. |
-| tools/shoot.py | Screenshot contact sheet of weapon animations. |
+| tools/shoot.py | Old: contact sheet for the removed photo-hand weapons. Stale. |
 | tools/compose_weapons.py, render_monsters.py, mockup.py | Old pipelines (cut weapons, rejected 3D-model monsters). Kept for reference. |
 | art/ | Source art. art/anarch is an unused CC0 pack. |
 
@@ -71,29 +72,22 @@ python3 tools/cutscenes.py       # intro and ending end to end, after touching t
 - **Rejected and removed, don't bring back without asking:** whip, crossbow, chaingun, sword (no art they liked), the
   arms-rig 3D hands, and the 3D megapack monsters (bad posed arms).
 
-## Current state
-- **Weapons:** photo fist plus nine pack weapons (elven wand, double shotgun, phoenix rod, dragon claw, hellstaff,
-  firemace, plasma rifle, rocket launcher, the Big One), unlocking from floor 1 to 86. All guns use ammo; an empty gun
-  leaves the cycle until another cache brings it back. Roles are written above the `WEAPONS` table.
-- **Zones:** `ZONES`, `THEMES`, `ROSTERS` and `BOSS_HP` sit near the top of the script. Difficulty scales by zone
-  (`hpMul`, `dmgMul`), never by raw floor number. Zones 6-10 have no ceiling and use open-sky panoramas (`skyPano`).
-- **Enemies:** 13 regular kinds plus 10 bosses (boss1 to boss10), using Freedoom and Blasphemer sprites (BSD licence, the
-  notice must ship with the game) with walk, attack, pain and death frames. The cast table is tools/enemy_cast.py.
-- **Controls:** RQPad in dock layout. ✕ fire, □ next gun, △ map. Movement is analog with easing (`MOVE_SPEED`,
-  `TURN_SPEED` and friends in `update`).
-- **Menus:** arcade style (`showMenu`). The best run is saved in localStorage `cc_best`; the checkpoint in `cc_save`.
+## Current state (details in NOTES.md)
+- **Feature-complete climb:** 100 floors, 10 zones, 10 bosses in arenas (four with a second phase), 17 enemy kinds that
+  fight each other when provoked, nine guns plus fists, armour and power-ups, secrets, locked doors, traps, scenery.
+- **Around the game:** intro and ending cutscenes, sound, music and ambience, three difficulties, saves on every floor,
+  checkpoints, pause, settings, key rebinding, controller support, full map, records and achievements, credits.
+- **Tooling:** source split under src/ with a build step, a release build without the test pad, an Electron wrapper,
+  a 22-check smoke test, a bot that plays the whole climb, and a cutscene test.
+- **Phone testing:** the published artifact still includes the RQPad on-screen pad (✕ fire, □ next gun, △ map).
 
 ## Next steps
-Done on 2026-11-14 (details in NOTES.md): ending cutscene, new enemy art with animation, balance pass, credits page, sound
-effects, enemy behaviours and boss moves, weapon power per zone, armour and power-ups, pack weapons, floor variety,
-pause menu and settings. The user tests by playing; much of this is tuned by simulation only and needs their feedback.
-1. **Feedback round:** fix whatever the user reports from play-testing (sounds were picked by file name, new weapons
-   and boss fights are untuned).
-2. **Music** is in (8 tracks picked blind); swap tracks in tools/pack_music.py if the user dislikes any.
-3. **More trap kinds** (only spikes and explosive pods exist).
-4. **Unused pad buttons:** ○, L1/R1, L2/R2 are unwired, but the pad is test scaffolding, so low priority.
-5. **Before release:**
-   - the pad is already left out of `tools/build.py --release` (dist/)
+The 2026-11-14/15 sessions took the game from a prototype to feature-complete (see NOTES.md). What is left:
+1. **The user's own play-test.** Nothing has been heard or hand-played by a person since the rebuild. Expect requests to
+   swap sounds or music tracks, and to retune weapons, bosses and normal difficulty.
+2. **Decide how hard normal should be.** The average bot finishes it without dying.
+3. **Before release:**
    - **remind the user:** the wall/floor/door textures are from a pack they bought on itch.io; they will look up its
      name and licence later (steps in CREDITS.md, "Reminder"). Everything else is on the in-game credits page.
-   - desktop app: scaffold is in desktop/ (see its README); installers still have to be built and tried per platform
+   - build and try the desktop installers per platform (desktop/README.md); wire up Steam if wanted
+   - the on-screen pad is already left out of `tools/build.py --release`
