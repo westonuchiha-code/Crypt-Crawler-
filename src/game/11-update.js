@@ -71,7 +71,7 @@ function update(dt) {
     const ox = d.x + 0.5 + d.dx * 0.7, oy = d.y + 0.5 + d.dy * 0.7;
     if (Math.hypot(ox - P.x, oy - P.y) > 10) continue;
     sfxAt('swing', ox, oy, 0.8);
-    shots.push({ x: ox, y: oy, vx: d.dx * 6, vy: d.dy * 6, life: 3, kind: 'spit', t: 0, dmg: Math.round(6 * dmgMul(level)) });
+    shots.push({ x: ox, y: oy, vx: d.dx * 6, vy: d.dy * 6, life: 3, kind: 'dart', t: 0, dmg: Math.round(6 * dmgMul(level)) });
   }
   for (const tr of traps) {                                  // spikes: a scrape of metal as they come out, and they bite
     const up = trapUp(tr);
@@ -115,6 +115,10 @@ function update(dt) {
   $('hudw').textContent = `${wdef.name}  ${ammoTxt}`;
   const bar = $('bossbar'), showBar = b && b.woke && running;
   bar.style.display = showBar ? 'flex' : 'none';
+  if (showBar) {                                             // keep the bar clear of the corner minimap: equal padding keeps it centred
+    const r = canvas.getBoundingClientRect(), pad = Number(mapOn) === 1 && level > 0 ? Math.ceil((W * 2 + 10) * r.width / RW) : 0;
+    bar.style.paddingLeft = bar.style.paddingRight = pad + 'px';
+  }
   if (showBar) { $('bossname').textContent = b.name; $('bossfill').style.width = Math.max(0, b.hp / b.maxHp * 100) + '%'; }
 }
 

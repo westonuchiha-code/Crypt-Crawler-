@@ -31,8 +31,8 @@
   #hpfill{height:100%;width:100%;background:#c93030;transition:width .15s}
   /* boss health bar: top centre of the view, under the message line, while a boss that has seen you is alive */
   #bossbar{position:fixed;left:0;right:0;top:66px;display:none;flex-direction:column;align-items:center;gap:3px;pointer-events:none;text-shadow:0 1px 2px #000}
-  #bossname{color:#ffb23a;font-size:12px;letter-spacing:4px}
-  #bosstrack{width:min(60%,420px);height:9px;border:1px solid #a33;background:#200}
+  #bossname{color:#ffc35a;font-size:12px;font-weight:bold;letter-spacing:4px;padding:1px 10px;background:rgba(0,0,0,.6);text-shadow:0 0 3px #000,0 1px 2px #000}
+  #bosstrack{width:min(90%,420px);height:9px;border:1px solid #a33;background:#200}
   #bossfill{height:100%;width:100%;background:linear-gradient(#ff7a12,#c41a08);transition:width .15s}
   body.intro #bossbar{display:none!important}
   #msg{position:fixed;top:44px;left:0;right:0;text-align:center;text-shadow:0 1px 3px #000;pointer-events:none;transition:opacity .6s;font-size:16px;color:#f0d890;opacity:0}
@@ -656,6 +656,16 @@ function loadSet(SET, DST, onFloor) {
 }
 const PROP_PX = {};
 loadSet(window.SHOTS, SHOT_PX, false); loadSet(window.ITEMS, ITEM_PX, true); loadSet(window.PROPS, PROP_PX, true);
+// Dart-wall darts, drawn here: seen nose-on as they fly at you, an iron point inside four bone-white fletching vanes.
+(function () {
+  const c = mk(13, 13), g = c.getContext('2d');
+  g.strokeStyle = '#d9cfb8'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(1.5, 1.5); g.lineTo(11.5, 11.5); g.moveTo(11.5, 1.5); g.lineTo(1.5, 11.5); g.stroke();
+  g.fillStyle = '#7a1d14'; g.fillRect(0, 0, 3, 3); g.fillRect(10, 0, 3, 3); g.fillRect(0, 10, 3, 3); g.fillRect(10, 10, 3, 3);   // red-dyed vane tips
+  g.fillStyle = '#3b3b40'; g.fillRect(4, 4, 5, 5); g.fillStyle = '#b8bcc4'; g.fillRect(5, 5, 3, 3); g.fillStyle = '#fff'; g.fillRect(6, 5, 1, 1);
+  const px = toPixels(c); px.w = 13; px.h = 13; px.ox = 6.5; px.oy = 6.5 + 0.5 / 0.009;
+  SHOT_PX.dart = { frames: [px], k: 0.009 };
+})();
 const ATK_T = 0.4, DIE_FPS = 9, WALK_FPS = 6;   // attack animation length (s), death and walk frame rates
 
 // Spike traps: an iron plate set in a corridor floor. The spikes are out for TRAP_UP seconds of every TRAP_CYCLE
@@ -1798,7 +1808,7 @@ function update(dt) {
     const ox = d.x + 0.5 + d.dx * 0.7, oy = d.y + 0.5 + d.dy * 0.7;
     if (Math.hypot(ox - P.x, oy - P.y) > 10) continue;
     sfxAt('swing', ox, oy, 0.8);
-    shots.push({ x: ox, y: oy, vx: d.dx * 6, vy: d.dy * 6, life: 3, kind: 'spit', t: 0, dmg: Math.round(6 * dmgMul(level)) });
+    shots.push({ x: ox, y: oy, vx: d.dx * 6, vy: d.dy * 6, life: 3, kind: 'dart', t: 0, dmg: Math.round(6 * dmgMul(level)) });
   }
   for (const tr of traps) {                                  // spikes: a scrape of metal as they come out, and they bite
     const up = trapUp(tr);
@@ -1842,6 +1852,10 @@ function update(dt) {
   $('hudw').textContent = `${wdef.name}  ${ammoTxt}`;
   const bar = $('bossbar'), showBar = b && b.woke && running;
   bar.style.display = showBar ? 'flex' : 'none';
+  if (showBar) {                                             // keep the bar clear of the corner minimap: equal padding keeps it centred
+    const r = canvas.getBoundingClientRect(), pad = Number(mapOn) === 1 && level > 0 ? Math.ceil((W * 2 + 10) * r.width / RW) : 0;
+    bar.style.paddingLeft = bar.style.paddingRight = pad + 'px';
+  }
   if (showBar) { $('bossname').textContent = b.name; $('bossfill').style.width = Math.max(0, b.hp / b.maxHp * 100) + '%'; }
 }
 

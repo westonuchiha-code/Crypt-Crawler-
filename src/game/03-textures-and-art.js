@@ -291,6 +291,16 @@ function loadSet(SET, DST, onFloor) {
 }
 const PROP_PX = {};
 loadSet(window.SHOTS, SHOT_PX, false); loadSet(window.ITEMS, ITEM_PX, true); loadSet(window.PROPS, PROP_PX, true);
+// Dart-wall darts, drawn here: seen nose-on as they fly at you, an iron point inside four bone-white fletching vanes.
+(function () {
+  const c = mk(13, 13), g = c.getContext('2d');
+  g.strokeStyle = '#d9cfb8'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(1.5, 1.5); g.lineTo(11.5, 11.5); g.moveTo(11.5, 1.5); g.lineTo(1.5, 11.5); g.stroke();
+  g.fillStyle = '#7a1d14'; g.fillRect(0, 0, 3, 3); g.fillRect(10, 0, 3, 3); g.fillRect(0, 10, 3, 3); g.fillRect(10, 10, 3, 3);   // red-dyed vane tips
+  g.fillStyle = '#3b3b40'; g.fillRect(4, 4, 5, 5); g.fillStyle = '#b8bcc4'; g.fillRect(5, 5, 3, 3); g.fillStyle = '#fff'; g.fillRect(6, 5, 1, 1);
+  const px = toPixels(c); px.w = 13; px.h = 13; px.ox = 6.5; px.oy = 6.5 + 0.5 / 0.009;
+  SHOT_PX.dart = { frames: [px], k: 0.009 };
+})();
 const ATK_T = 0.4, DIE_FPS = 9, WALK_FPS = 6;   // attack animation length (s), death and walk frame rates
 
 // Spike traps: an iron plate set in a corridor floor. The spikes are out for TRAP_UP seconds of every TRAP_CYCLE

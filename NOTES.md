@@ -92,7 +92,9 @@ measurements behind each change, is in docs/notes-history.md.
 - A struck enemy was recoloured (neon yellow or blue); `hitTint` now only pushes its own colours towards white.
 - Menu subtitles sat under the title's glow; the high score showed on the pause menu. Fixed.
 - three.js warned about `flatShading` on Lambert materials: removed.
-- Not changed: dart-wall projectiles reuse the blue "spit" sprite and do not look like darts.
+- Dart-wall darts were the blue "spit" ball; they now have their own drawn sprite (`SHOT_PX.dart`, nose-on with fletching).
+- The boss bar could run into the corner minimap on narrow windows: it now pads itself clear of it. The boss name
+  sits on a dark plate so bright skies don't wash it out.
 
 ## Known gaps
 - Never heard or hand-played by the person who wrote most of it: sound choices, music choices, weapon feel, boss feel,
